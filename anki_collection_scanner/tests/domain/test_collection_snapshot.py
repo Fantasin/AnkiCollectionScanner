@@ -34,7 +34,27 @@ def test_empty_snapshot_creation():
 
 #model tests
 def test_model_dataclass_creation():
-    pass
+    model_snapshot = ModelSnapshot(1353588026860, "Geography")
+
+    assert model_snapshot.model_id == 1353588026860
+    assert model_snapshot.model_name == "Geography"
+    assert model_snapshot.model_field_names == []
+
+def test_model_id_none():
+    with pytest.raises(ValueError):
+        ModelSnapshot(cast(int, None), "Geography")
+
+def test_model_id_empty():
+    with pytest.raises(ValueError):
+        ModelSnapshot(cast(int, ""), "Geography")
+
+def test_model_name_none():
+    with pytest.raises(ValueError):
+        ModelSnapshot(1353588026860, cast(str, None))
+
+def test_model_name_empty():
+    with pytest.raises(ValueError):
+        ModelSnapshot(1353588026860, "")
 
 #deck tests
 def test_deck_dataclass_creation():
@@ -44,11 +64,12 @@ def test_deck_dataclass_creation():
     assert deck_snapshot.deck_name == "AnkiConnectAPI"
     assert deck_snapshot.note_ids is None
 
-def test_deck_id_empty():
+
+def test_deck_id_none():
     with pytest.raises(ValueError):
         DeckSnapshot(cast(int, None), "AnkiConnectAPI")
 
-def test_deck_id_none():
+def test_deck_id_empty():
     with pytest.raises(ValueError):
         DeckSnapshot(cast(int, ""), "AnkiConnectAPI")
 
@@ -62,12 +83,71 @@ def test_deck_name_empty():
 
 #note tests
 def test_note_dataclass_creation():
-    pass
+    note_snapshot = NoteSnapshot(1645514410825)
 
+    assert note_snapshot.note_id == 1645514410825
+    assert note_snapshot.model == ""
+    assert note_snapshot.cards == []
+    assert note_snapshot.tags == []
+    assert note_snapshot.note_fields == {}
+
+def test_note_id_none():
+    with pytest.raises(ValueError):
+        NoteSnapshot(cast(int, None))
+
+def test_note_id_empty():
+    with pytest.raises(ValueError):
+        NoteSnapshot(cast(int, ""))
 
 #data flow tests
 def test_to_from_dict_flow():
-    pass
+    snapshot = CollectionSnapshot()
+
+        # --- Add model ---
+    snapshot.models[1] = ModelSnapshot(
+        model_id=1,
+        model_name="Basic",
+        model_field_names=["Front", "Back"]
+    )
+
+    # --- Add deck ---
+    snapshot.decks[10] = DeckSnapshot(
+        deck_id=10,
+        deck_name="Default",
+        note_ids=[100]
+    )
+
+    # --- Add note ---
+    snapshot.notes[100] = NoteSnapshot(
+        note_id=100,
+        note_fields={"Front": "Hello", "Back": "World"}
+    )
+
+    json_data = snapshot.to_dict()
+
+    assert isinstance(json_data, dict)
+    assert {"meta", "models", "decks", "notes"} <= json_data.keys()
+    
+    snapshot2 = CollectionSnapshot.from_dict(json_data)
+
+    assert isinstance(snapshot2, CollectionSnapshot)
+    assert snapshot2.to_dict() == json_data
+
+    assert 1 in snapshot2.models
+    assert snapshot2.models[1].model_name == "Basic"
+
+    assert 10 in snapshot2.decks
+    assert snapshot2.decks[10].note_ids == [100]
+
+    assert 100 in snapshot2.notes
+    fields = snapshot2.notes[100].note_fields
+    assert fields["Front"] == "Hello"
+    assert fields["Back"] == "World"
+    
+def test_empty_roundtrip_flow():
+    snapshot = CollectionSnapshot()
+    json_data = snapshot.to_dict()
+    assert CollectionSnapshot.from_dict(json_data).to_dict() == json_data
 
 #update tests
 def test_update_models():
