@@ -5,15 +5,6 @@ from anki_collection_scanner.domain.collection_snapshot import CollectionSnapsho
 from anki_collection_scanner.domain.collection_snapshot import ModelSnapshot, MetadataSnapshot, NoteSnapshot
 
 '''
-import all the necessary stuff for tests
-write 5-10 basic tests for domain:
-- valid/invalid/empty dataclasses creation
-- CollectionSnapshot initialization
-- rountrip test for to/from dict
-- updating methods: 
-    - updating models and decks
-    - assert on updating proper fields
-
 TODO: critically think about what test data might crash the program, design tests accordingly
 TODO: use parametrized tests if I need to run same test logic with different input
 TODO: use fixtures when I need a reusable setup
@@ -151,10 +142,79 @@ def test_empty_roundtrip_flow():
 
 #update tests
 def test_update_models():
-    pass
+    snapshot = CollectionSnapshot()
+    models = {'12434324': 1692619332364, 'Anime sentence cards': 1693824375768, 'AnkiConnectAPI_test': 1731513977329}
+
+    snapshot.update_models(models)
+
+    for name, model_id in models.items():
+        assert model_id in snapshot.models
+        
+        model = snapshot.models[model_id]
+        assert model.model_id == model_id
+        assert model.model_name == name
+
+    assert len(snapshot.models) == len(models)
+
+def test_update_models_empty():
+    snapshot = CollectionSnapshot()
+    snapshot.update_models({})
+
+    assert snapshot.models == {}
 
 def test_update_model_fields():
-    pass
+    snapshot = CollectionSnapshot()
+    models = {'12434324': 1692619332364}
+    model_fields = ['Sentence', 'Screenshot', 'Furigana', 'Pitch Accent', 'New words']
+
+    snapshot.update_models(models)
+    snapshot.update_model_fields(1692619332364, model_fields)
+
+    assert snapshot.models[1692619332364].model_field_names == model_fields
+    
+def test_update_model_fields_empty():
+    snapshot = CollectionSnapshot()
+
+    with pytest.raises(KeyError):
+        snapshot.update_model_fields(1692619332364, ["Front", "Back"])
+
 
 def test_update_deck_note_ids():
-    pass
+    snapshot = CollectionSnapshot()
+
+    decks = {'Monolingual': 1744028003906}
+    note_ids = [1744028123348, 1744028196910, 1744028410569]
+
+    snapshot.update_decks(decks)
+    snapshot.update_deck_note_ids(1744028003906, note_ids)
+
+    assert snapshot.decks[1744028003906].note_ids == note_ids
+
+def test_update_deck_note_ids_empty():
+    snapshot = CollectionSnapshot()
+
+    with pytest.raises(KeyError):
+        snapshot.update_deck_note_ids(1744027989515, [1744028123348, 1744028196910])
+
+
+def test_update_notes():
+    snapshot = CollectionSnapshot()
+    note_ids = [1744028123348, 1744028196910, 1744028410569]
+
+    snapshot.update_notes(note_ids)
+
+    for note_id in note_ids:
+        assert note_id in snapshot.notes
+        
+        note = snapshot.notes[note_id]
+        assert note.note_id == note_id
+
+    assert len(snapshot.notes) == len(note_ids)
+
+def test_update_notes_empty():
+    snapshot = CollectionSnapshot()
+    snapshot.update_notes([])
+
+    assert snapshot.notes == {}
+
+#TODO: add  updating note data tests, metadata tests

@@ -87,9 +87,9 @@ class AnkiConnectClient:
 
 
 """client = AnkiConnectClient()
-payload = client.get_deck_note_ids("Monolingual::Immersion")
+payload = client.get_decks_and_ids()
 data = client._invoke_request(payload)
-print(len(data))"""
+print(data)"""
 
 
 

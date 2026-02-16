@@ -101,11 +101,12 @@ class CollectionSnapshot:
 
         return snapshot
 
-    def update_models(self, models: Dict[str, Any]):
-        if not models or models == {}:
+    def update_models(self, models: Dict[str, int]):
+        if not models:
             logger.warning("No models to ingest...")
             return
         
+        #TODO: this implementation rewrites models completely. Fix to proper update
         self.models = {id: ModelSnapshot(model_id = id, model_name = model_name) for model_name, id in models.items()}
 
 
@@ -118,7 +119,7 @@ class CollectionSnapshot:
 
 
     def update_notes(self, note_ids: list[int]):
-        if not note_ids or note_ids == []:
+        if not note_ids:
             logger.warning("No notes to ingest")
             return
         
@@ -127,7 +128,10 @@ class CollectionSnapshot:
     
     def update_model_fields(self, model_id: int, fields_list: list[str]):
 
-        if not fields_list or fields_list == []:
+        if model_id not in self.models:
+            raise KeyError(f"Model: {model_id} not found in models")
+
+        if not fields_list:
             logger.warning("No fields are present for model: %s", model_id)
             return
         
@@ -135,7 +139,10 @@ class CollectionSnapshot:
 
     def update_deck_note_ids(self, deck_id: int, deck_note_ids: list[int]):
 
-        if not deck_note_ids or deck_note_ids == []:
+        if deck_id not in self.decks:
+            raise KeyError(f"Deck id: {deck_id} is not in decks")
+
+        if not deck_note_ids:
             logger.warning("No notes are present in the deck: %s", deck_id)
             return
         
@@ -144,7 +151,7 @@ class CollectionSnapshot:
     #consider making NoteFieldSnapshot a separate dataclass. Optionally break it down even more to retrieve reading, img code... 
     def update_note_data(self, note_data: Dict[str, Any]):
 
-        if not note_data or note_data == {}:
+        if not note_data:
             logger.warning("Note data doesn't exist or is empty")
             return
         
