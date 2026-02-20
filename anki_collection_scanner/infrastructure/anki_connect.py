@@ -84,8 +84,6 @@ class AnkiConnectClient:
             }}
 
 
-
-
 """client = AnkiConnectClient()
 payload = client.get_decks_and_ids()
 data = client._invoke_request(payload)
