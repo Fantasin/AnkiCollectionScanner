@@ -1,4 +1,5 @@
 import pytest
+import requests
 
 from unittest.mock import patch, MagicMock
 
@@ -32,7 +33,20 @@ def test_invoke_request_success():
     )
 
 def test_invoke_request_http_error():
-    pass
+    client = AnkiConnectClient()
+
+    fake_response = MagicMock()
+
+    fake_response.raise_for_status.side_effect = requests.HTTPError("test error")
+
+    with patch("anki_collection_scanner.infrastructure.anki_connect.requests.post", return_value = fake_response):
+
+        payload = {"action": "testHTTPError", "version": 6}
+
+        with pytest.raises(requests.HTTPError):
+            client._invoke_request(payload)
+
+
 
 def test_invoke_request_error():
     client = AnkiConnectClient()
@@ -59,21 +73,74 @@ def test_invoke_request_error():
     )
 
 
-#Payload construction tests
-    def test_get_decks_and_ids():
-        pass
+#payload construction tests
+def test_get_decks_and_ids():
+    client = AnkiConnectClient() #6 is a default version value
 
-    def test_get_models_and_ids():
-        pass
+    payload = client.get_decks_and_ids()
 
-    def test_get_model_field_names():
-        pass
+    assert payload == {
+            "action": "deckNamesAndIds",
+            "version": 6
+        }
 
-    def test_get_deck_note_ids():
-        pass
+def test_get_models_and_ids():
+    client = AnkiConnectClient()
+
+    payload = client.get_models_and_ids()
+
+    assert payload == {
+            "action": "modelNamesAndIds",
+            "version": 6
+        }
+
+def test_get_model_field_names():
+    client = AnkiConnectClient()
+
+    payload = client.get_model_field_names("Anime sentence cards")
+
+    assert payload == {
+            "action": "modelFieldNames",
+            "version": 6,
+            "params": {
+                "modelName": "Anime sentence cards"
+            }
+        }
+
+def test_get_deck_note_ids():
+    client = AnkiConnectClient()
+
+    payload = client.get_deck_note_ids("Outdated Decks")
+
+    assert payload == {
+            "action": "findNotes",
+            "version": 6,
+            "params": {
+                "query": '"deck:Outdated Decks"'
+            }
+        }
     
-    def test_get_all_note_ids():
-        pass
+def test_get_all_note_ids():
+    client = AnkiConnectClient()
+
+    payload = client.get_all_note_ids()
+
+    assert payload == {
+            "action": "findNotes",
+            "version": 6,
+            "params": {
+                "query": ""
+            }
+        }
     
-    def test_get_note_id_field_data():
-        pass
+def test_get_note_id_field_data():
+    client = AnkiConnectClient()
+
+    payload = client.get_note_id_field_data([1592036539578, 1592036547354])
+
+    assert payload == {            
+            "action": "notesInfo",
+            "version": 6,
+            "params": {
+                "notes": [1592036539578, 1592036547354]
+            }}

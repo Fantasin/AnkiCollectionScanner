@@ -25,18 +25,14 @@ class SnapshotOrchestrator:
 
         return snapshot
     
-    #TODO: fix a bug where a lot of decks are considered to be empty (no note_ids) and add logic for adding notes to only a child deck(???)
-    def deck_add_note_ids(self, snapshot: CollectionSnapshot):
+    def deck_add_note_id_count_and_hash(self, snapshot: CollectionSnapshot):
         for id, deck in snapshot.decks.items():
             payload = self.anki_connect_client.get_deck_note_ids(deck.deck_name)
             deck_note_ids = self.anki_connect_client._invoke_request(payload)
 
-            print(f"Deck note ids for {deck.deck_name} are of length {len(deck_note_ids)}")
-
-            snapshot.update_deck_note_ids(id, deck_note_ids)
-        
-        return snapshot
-
+            
+            notes_hash = snapshot.compute_note_hash(deck_note_ids)
+            snapshot.update_deck_note_count_and_hash(id, len(deck_note_ids), notes_hash)
     
     def notes_add_field_data(self, snapshot: CollectionSnapshot):
             
@@ -68,12 +64,10 @@ class SnapshotOrchestrator:
         snapshot.update_notes(note_ids_data)
         
 
-        #add data for model field names and note data
+        #add data for model field names, note data and note count
         self.models_add_field_names(snapshot)
         self.notes_add_field_data(snapshot)
-
-        #TODO: uncomment after bug fixes
-        #self.deck_add_note_ids(snapshot)
+        self.deck_add_note_id_count_and_hash(snapshot)
 
         #save to json
         self.snapshot_repository.save_snapshot(snapshot)
@@ -100,7 +94,7 @@ class SnapshotOrchestrator:
 
 orchestrator = SnapshotOrchestrator(JSONSnapshotRepository(), AnkiConnectClient())
 
-orchestrator.test_pipeline()
+#orchestrator.test_pipeline()
 #snapshot = orchestrator.test_load()
 
 

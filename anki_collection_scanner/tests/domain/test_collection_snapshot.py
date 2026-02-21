@@ -53,7 +53,7 @@ def test_deck_dataclass_creation():
 
     assert deck_snapshot.deck_id == 1731424301417
     assert deck_snapshot.deck_name == "AnkiConnectAPI"
-    assert deck_snapshot.note_ids is None
+    assert deck_snapshot.note_count is None
 
 
 def test_deck_id_none():
@@ -105,7 +105,7 @@ def test_to_from_dict_flow():
     snapshot.decks[10] = DeckSnapshot(
         deck_id=10,
         deck_name="Default",
-        note_ids=[100]
+        note_count=100
     )
 
     # --- Add note ---
@@ -128,7 +128,7 @@ def test_to_from_dict_flow():
     assert snapshot2.models[1].model_name == "Basic"
 
     assert 10 in snapshot2.decks
-    assert snapshot2.decks[10].note_ids == [100]
+    assert snapshot2.decks[10].note_count == 100
 
     assert 100 in snapshot2.notes
     fields = snapshot2.notes[100].note_fields
@@ -179,22 +179,22 @@ def test_update_model_fields_empty():
         snapshot.update_model_fields(1692619332364, ["Front", "Back"])
 
 
-def test_update_deck_note_ids():
+def test_update_deck_note_count_and_hash():
     snapshot = CollectionSnapshot()
 
     decks = {'Monolingual': 1744028003906}
-    note_ids = [1744028123348, 1744028196910, 1744028410569]
+    note_ids = 200
 
     snapshot.update_decks(decks)
-    snapshot.update_deck_note_ids(1744028003906, note_ids)
+    snapshot.update_deck_note_count_and_hash(1744028003906, 200, "hash")
 
-    assert snapshot.decks[1744028003906].note_ids == note_ids
+    assert snapshot.decks[1744028003906].note_count == note_ids
 
 def test_update_deck_note_ids_empty():
     snapshot = CollectionSnapshot()
 
     with pytest.raises(KeyError):
-        snapshot.update_deck_note_ids(1744027989515, [1744028123348, 1744028196910])
+        snapshot.update_deck_note_count_and_hash(1744027989515, 200, "hash")
 
 
 def test_update_notes():

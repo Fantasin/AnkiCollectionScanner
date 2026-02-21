@@ -1,21 +1,18 @@
 
 import logging
+import hashlib
 
-from typing import Dict, Any, Optional
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-#TODO: decide on a structure for note_id dict to include field contents
-#TODO: add methods for updating note_id data
-#TODO: add methods for updating note_ids list for every deck
-
 @dataclass
 class ModelSnapshot:
     model_id: int 
     model_name: str
-    model_field_names: list[str] = field(default_factory=list)
+    model_field_names: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         self.validate()
@@ -33,7 +30,8 @@ class ModelSnapshot:
 class DeckSnapshot:
     deck_id: int
     deck_name: str
-    note_ids: Optional[list[int]] = None
+    note_count: Optional[int] = None
+    notes_hash: Optional[str] = None
 
     def __post_init__(self):
         self.validate()
@@ -137,7 +135,8 @@ class CollectionSnapshot:
         
         self.models[model_id].model_field_names = fields_list
 
-    def update_deck_note_ids(self, deck_id: int, deck_note_ids: list[int]):
+    #TODO: probably no longer needed, better to get note ids on demand during orchestration and not store them in json 
+    def update_deck_note_ids(self, deck_id: int, deck_note_ids: int):
 
         if deck_id not in self.decks:
             raise KeyError(f"Deck id: {deck_id} is not in decks")
@@ -145,8 +144,20 @@ class CollectionSnapshot:
         if not deck_note_ids:
             logger.warning("No notes are present in the deck: %s", deck_id)
             return
-        
-        self.decks[deck_id].note_ids = deck_note_ids
+        #TODO: revise implementation
+        self.decks[deck_id].note_count = deck_note_ids
+
+
+    def update_deck_note_count_and_hash(self, deck_id: int, note_count: int, notes_hash: str):
+
+        if deck_id not in self.decks:
+            raise KeyError(f"Deck id: {deck_id} is not in decks")
+    
+        if not note_count:
+            logger.warning("No notes are present in the deck: %s", deck_id)
+
+        self.decks[deck_id].note_count = note_count
+        self.decks[deck_id].notes_hash = notes_hash
 
     #consider making NoteFieldSnapshot a separate dataclass. Optionally break it down even more to retrieve reading, img code... 
     def update_note_data(self, note_data: Dict[str, Any]):
@@ -160,6 +171,12 @@ class CollectionSnapshot:
         self.notes[note_data["noteId"]].cards = note_data["cards"]
         self.notes[note_data["noteId"]].tags = note_data["tags"]
         self.notes[note_data["noteId"]].note_fields = note_data["fields"]
+
+    def compute_note_hash(self, note_ids: List[int])-> str: 
+
+        sorted_notes = sorted(note_ids)
+        joined = ",".join(map(str, sorted_notes))
+        return hashlib.sha256(joined.encode("utf-8")).hexdigest()
         
 
 """snapshot = CollectionSnapshot()

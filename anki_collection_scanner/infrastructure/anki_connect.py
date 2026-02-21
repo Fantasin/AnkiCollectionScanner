@@ -62,7 +62,7 @@ class AnkiConnectClient:
             "action": "findNotes",
             "version": self.version,
             "params": {
-                "query": f"deck:{deck_name}"
+                "query": f'"deck:{deck_name}"' #double quote to avoid the bug where deck name contains a space
             }
         }
     
