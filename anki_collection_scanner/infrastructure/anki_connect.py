@@ -27,12 +27,11 @@ class AnkiConnectClient:
         r.raise_for_status()
 
         data = r.json()
-        logger.debug("Received raw response data", data)
+        logger.debug("Received raw response data for action: %s", payload["action"])
 
-        if not data["error"] == None:
-            raise RuntimeError(f"API error occured: {data["error"]}")
+        if data["error"] is not None:
+            raise RuntimeError(f"API error occured: {data['error']}")
         
-        logger.debug("Response data is valid, returning...")
         return data["result"]
     
 
@@ -82,6 +81,8 @@ class AnkiConnectClient:
             "params": {
                 "notes": note_ids
             }}
+
+    #TODO: add updateNoteFields payload
 
 
 """client = AnkiConnectClient()

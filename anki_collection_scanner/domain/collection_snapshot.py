@@ -135,18 +135,6 @@ class CollectionSnapshot:
         
         self.models[model_id].model_field_names = fields_list
 
-    #TODO: probably no longer needed, better to get note ids on demand during orchestration and not store them in json 
-    def update_deck_note_ids(self, deck_id: int, deck_note_ids: int):
-
-        if deck_id not in self.decks:
-            raise KeyError(f"Deck id: {deck_id} is not in decks")
-
-        if not deck_note_ids:
-            logger.warning("No notes are present in the deck: %s", deck_id)
-            return
-        #TODO: revise implementation
-        self.decks[deck_id].note_count = deck_note_ids
-
 
     def update_deck_note_count_and_hash(self, deck_id: int, note_count: int, notes_hash: str):
 

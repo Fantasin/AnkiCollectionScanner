@@ -38,6 +38,11 @@ def build_logging():
                 "level":"INFO",
                 "propagate": True,
             },
+        "urllib3": {
+            "level": "WARNING",
+            "handlers": ["console"],
+            "propagate": False
+            },
         },
     }
 

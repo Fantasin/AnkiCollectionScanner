@@ -1,19 +1,54 @@
 
+import logging
+
 from ..infrastructure.anki_connect import AnkiConnectClient
 from ..infrastructure.snapshot_repository import JSONSnapshotRepository
 from ..domain.collection_snapshot import CollectionSnapshot
 
-#TODO: add logging, implement proper orcherstation for the whole pipeline
+logger = logging.getLogger(__name__)
 
 class SnapshotOrchestrator:
     def __init__(self, snapshot_repository, anki_connect_client):
         self.snapshot_repository: JSONSnapshotRepository = snapshot_repository
         self.anki_connect_client: AnkiConnectClient = anki_connect_client
 
-    def scan_user_collection(self):
-        pass
-    def update_snapshot_artifact(self):
-        pass
+    def scan_user_collection_first(self) -> CollectionSnapshot: 
+
+        snapshot = CollectionSnapshot()
+        logger.info("Created a blank snapshot")
+
+        models_payload = self.anki_connect_client.get_models_and_ids()
+        models_data = self.anki_connect_client._invoke_request(models_payload)
+        decks_payload = self.anki_connect_client.get_decks_and_ids()
+        decks_data = self.anki_connect_client._invoke_request(decks_payload)
+        note_ids_payload = self.anki_connect_client.get_all_note_ids()
+        note_ids_data = self.anki_connect_client._invoke_request(note_ids_payload)
+        logger.info("Enriched snapshot with models, decks and notes base structure")
+
+        #add data to decks and models
+        snapshot.update_decks(decks_data) 
+        snapshot.update_models(models_data)
+        snapshot.update_notes(note_ids_data)
+        logger.info("Added data to models, decks and notes")
+        
+        #add data for model field names, note data and note count
+        self.models_add_field_names(snapshot)
+        self.notes_add_field_data(snapshot)
+        self.deck_add_note_id_count_and_hash(snapshot)
+        logger.info("Added data to model field names, note data and note count")
+
+        logger.info("First collection scan completed")
+
+        return snapshot
+
+    def scan_user_collection_repeated(self) -> CollectionSnapshot:
+        snapshot = self.snapshot_repository.load_snapshot()
+        logger.info("Snapshot loaded from a json file")
+
+        #TODO:check for diffs in hash of metadata -> return if the same
+        #TODO:check for diffs in hash of decks, models and notes -> update if different
+
+        return snapshot
 
     def models_add_field_names(self, snapshot: CollectionSnapshot):
 
@@ -46,56 +81,16 @@ class SnapshotOrchestrator:
 
             return snapshot
     
+    def orchestrated_pipeline(self):
+        logger.info("Starting pipeline orchestration")
 
-    def test_pipeline(self):
-        snapshot = CollectionSnapshot()
-
-        #base data for models and decks
-        models_payload = self.anki_connect_client.get_models_and_ids()
-        models_data = self.anki_connect_client._invoke_request(models_payload)
-        decks_payload = self.anki_connect_client.get_decks_and_ids()
-        decks_data = self.anki_connect_client._invoke_request(decks_payload)
-        note_ids_payload = self.anki_connect_client.get_all_note_ids()
-        note_ids_data = self.anki_connect_client._invoke_request(note_ids_payload)
-
-        #add data to decks and models
-        snapshot.update_decks(decks_data) 
-        snapshot.update_models(models_data)
-        snapshot.update_notes(note_ids_data)
+        if self.snapshot_repository.file_path.is_file():
+            loaded_snapshot = self.scan_user_collection_repeated()
+            return loaded_snapshot
         
+        enriched_snapshot = self.scan_user_collection_first()
+        self.snapshot_repository.save_snapshot(enriched_snapshot)
 
-        #add data for model field names, note data and note count
-        self.models_add_field_names(snapshot)
-        self.notes_add_field_data(snapshot)
-        self.deck_add_note_id_count_and_hash(snapshot)
-
-        #save to json
-        self.snapshot_repository.save_snapshot(snapshot)
-    
-    def test_load(self):
-
-        snapshot = self.snapshot_repository.load_snapshot()
-
-        return snapshot
-    
-    def test_note_upd(self):
-        snapshot = self.snapshot_repository.load_snapshot()
-
-        models_payload = self.anki_connect_client.get_note_id_field_data([1769964960519])
-        models_data = self.anki_connect_client._invoke_request(models_payload)
-
-        
-
-        snapshot.update_note_data(models_data[0])
-        print(snapshot.notes[1769964960519])
-    
-
-
-
-orchestrator = SnapshotOrchestrator(JSONSnapshotRepository(), AnkiConnectClient())
-
-#orchestrator.test_pipeline()
-#snapshot = orchestrator.test_load()
 
 
 
