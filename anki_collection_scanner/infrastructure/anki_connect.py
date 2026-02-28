@@ -12,15 +12,18 @@ import logging
 
 from typing import Dict, Any
 
+from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
+
 logger = logging.getLogger(__name__)
 
 ANKI_CONNECT_URL = "http://127.0.0.1:8765"
 
-class AnkiConnectClient:
+class AnkiConnectClient(AnkiConnectPort):
     def __init__(self):
         self.url: str = ANKI_CONNECT_URL
         self.version: int = 6
 
+    #generic invoke method
     def _invoke_request(self, payload):
         
         r = requests.post(url = self.url, json = payload)
@@ -36,28 +39,31 @@ class AnkiConnectClient:
     
 
     def get_decks_and_ids(self) -> Dict[str, Any]:
-        return {
+        payload = {
             "action": "deckNamesAndIds",
             "version": self.version
         }
+        return self._invoke_request(payload)
 
     def get_models_and_ids(self) -> Dict[str, Any]:
-        return {
+        payload = {
             "action": "modelNamesAndIds",
             "version": self.version
         }
+        return self._invoke_request(payload)
 
     def get_model_field_names(self, model_name: str) -> Dict[str, Any]:
-        return {
+        payload=  {
             "action": "modelFieldNames",
             "version": self.version,
             "params": {
                 "modelName": model_name
             }
         }
+        return self._invoke_request(payload)
 
-    def get_deck_note_ids(self, deck_name: str) -> Dict[str, Any]:
-        return {
+    def get_deck_note_ids(self, deck_name: str) -> list[int]:
+        payload = {
             "action": "findNotes",
             "version": self.version,
             "params": {
@@ -65,29 +71,32 @@ class AnkiConnectClient:
             }
         }
     
-    def get_all_note_ids(self) -> Dict[str, Any]:
-        return {
+        return self._invoke_request(payload)
+    
+    def get_all_note_ids(self) -> list[int]:
+        payload = {
             "action": "findNotes",
             "version": self.version,
             "params": {
                 "query": ""
             }
         }
+        return self._invoke_request(payload)
     
     def get_note_id_field_data(self, note_ids: list[int]) -> Dict[str, Any]:
-        return {            
+        payload = {            
             "action": "notesInfo",
             "version": self.version,
             "params": {
                 "notes": note_ids
             }}
+    
+        return self._invoke_request(payload)
 
     #TODO: add updateNoteFields payload
 
-
 """client = AnkiConnectClient()
-payload = client.get_decks_and_ids()
-data = client._invoke_request(payload)
+data = client.get_decks_and_ids()
 print(data)"""
 
 
