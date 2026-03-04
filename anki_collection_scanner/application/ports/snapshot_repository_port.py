@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 from anki_collection_scanner.domain.result import Result
 from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
-from anki_collection_scanner.domain.exceptions import  SnapshotRepositoryError
+from anki_collection_scanner.domain.domain_exceptions import SnapshotRepositoryError
 
 
 class SnapshotRepositoryPort(ABC):

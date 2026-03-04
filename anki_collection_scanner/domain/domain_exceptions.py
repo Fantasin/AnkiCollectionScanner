@@ -1,3 +1,4 @@
+#TODO: evaluate whether or not these belong to domain or infra
 
 class SnapshotRepositoryError(Exception):
     """Base class for snapshot repository errors"""

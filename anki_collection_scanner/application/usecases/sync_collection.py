@@ -8,6 +8,8 @@ import logging
 from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
 from anki_collection_scanner.application.ports.snapshot_repository_port import SnapshotRepositoryPort
+from anki_collection_scanner.domain.result import Result
+from anki_collection_scanner.application.application_exceptions import SyncError
 
 logger = logging.getLogger(__name__)
 
@@ -23,21 +25,31 @@ class SyncCollectionUseCase():
 
     def sync_user_collection(self, snapshot: CollectionSnapshot):
 
-        decks_data = self.anki_connect_client.get_decks_and_ids()
-        models_data = self.anki_connect_client.get_models_and_ids()
-        notes_ids = self.anki_connect_client.get_all_note_ids()
+        decks_data, models_data, notes_ids = self.fetch_base_collection_data()
         logger.info("Got data for decks, models and notes")
 
-        snapshot.update_decks(decks_data)
-        snapshot.update_models(models_data)
-        snapshot.update_notes(notes_ids)
+        self.update_snapshot_base_collection_data(snapshot, decks_data, models_data, notes_ids)
         logger.info("Formed base structure, added decks, models and notes data")
 
+        self.enrich_snapshot(snapshot)
+        logger.info("Enriched data: added field models, note field data and deck note count and hash")
+
+    def fetch_base_collection_data(self):
+        decks = self.anki_connect_client.get_decks_and_ids()
+        models = self.anki_connect_client.get_models_and_ids()
+        notes = self.anki_connect_client.get_all_note_ids()
+
+        return decks, models, notes
+
+    def update_snapshot_base_collection_data(self, snapshot: CollectionSnapshot, decks, models, notes):
+        snapshot.update_decks(decks)
+        snapshot.update_models(models)
+        snapshot.update_notes(notes)
+
+    def enrich_snapshot(self, snapshot: CollectionSnapshot):
         self.add_model_field_names(snapshot)
         self.add_note_id_field_data(snapshot)
         self.add_deck_note_count_and_hash(snapshot)
-        logger.info("Enriched data: added field models, note field data and deck note count and hash")
-
 
     def add_model_field_names(self, snapshot: CollectionSnapshot):
         for id, model_data in snapshot.models.items():
@@ -58,9 +70,16 @@ class SyncCollectionUseCase():
             snapshot.update_deck_note_count_and_hash(id, len(note_ids), notes_hash)
     
     #pipeline execution
-    def execute_sync_collection_use_case(self):
+    def execute_sync_collection_use_case(self)-> Result[CollectionSnapshot, SyncError]:
         snapshot = CollectionSnapshot()
-        self.sync_user_collection(snapshot)
 
-        self.snapshot_repository.save_snapshot(snapshot)
-        logger.info("Collection synced successfully")
+        try:
+            self.sync_user_collection(snapshot)
+
+            self.snapshot_repository.save_snapshot(snapshot)
+            logger.info("Collection synced successfully")
+            return Result.ok(snapshot)
+
+        except Exception as e:
+            logger.exception("Collection sync failed")
+            return Result.err(SyncError(stage = "SYNC_COLLECTION", message = "Collection sync failed"))

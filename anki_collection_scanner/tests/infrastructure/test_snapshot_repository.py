@@ -2,7 +2,7 @@ import pytest
 
 from anki_collection_scanner.infrastructure.snapshot_repository import JSONSnapshotRepository
 from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
-from anki_collection_scanner.domain.exceptions import SnapshotRepositoryError, SnapshotCorruptedError, SnapshotNotFoundError
+from anki_collection_scanner.domain.domain_exceptions import SnapshotRepositoryError, SnapshotCorruptedError, SnapshotNotFoundError
 
 
 def test_save_json_file_creation(tmp_path):

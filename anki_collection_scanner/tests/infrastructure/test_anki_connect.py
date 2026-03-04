@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 
 from anki_collection_scanner.infrastructure.anki_connect import AnkiConnectClient
 
@@ -77,70 +77,121 @@ def test_invoke_request_error():
 def test_get_decks_and_ids():
     client = AnkiConnectClient() #6 is a default version value
 
-    payload = client.get_decks_and_ids()
+    client._invoke_request = Mock(return_value = {"Default": 1})
 
-    assert payload == {
-            "action": "deckNamesAndIds",
-            "version": 6
-        }
+    result = client.get_decks_and_ids()
+
+    client._invoke_request.assert_called_once_with({
+        "action": "deckNamesAndIds",
+        "version": 6
+    })
+
+    assert result == {"Default": 1}
 
 def test_get_models_and_ids():
     client = AnkiConnectClient()
 
-    payload = client.get_models_and_ids()
+    client._invoke_request = Mock(return_value = {"Japanese12": 13})
 
-    assert payload == {
+    result = client.get_models_and_ids()
+
+    client._invoke_request.assert_called_once_with({
             "action": "modelNamesAndIds",
             "version": 6
         }
+    )
+    assert result == {"Japanese12": 13}
 
 def test_get_model_field_names():
     client = AnkiConnectClient()
 
-    payload = client.get_model_field_names("Anime sentence cards")
+    client._invoke_request = Mock(return_value = ["Front", "Back", "Audio"])
 
-    assert payload == {
+    result = client.get_model_field_names("Anime sentence cards")
+
+    client._invoke_request.assert_called_once_with(
+        {
             "action": "modelFieldNames",
             "version": 6,
             "params": {
                 "modelName": "Anime sentence cards"
-            }
+            }  
         }
+    )
+    assert result == ["Front", "Back", "Audio"]
+
 
 def test_get_deck_note_ids():
     client = AnkiConnectClient()
 
-    payload = client.get_deck_note_ids("Outdated Decks")
+    client._invoke_request = Mock(return_value = [282, 434, 313])
 
-    assert payload == {
+    result = client.get_deck_note_ids("Outdated Decks")
+
+    client._invoke_request.assert_called_once_with(
+        {
             "action": "findNotes",
             "version": 6,
             "params": {
                 "query": '"deck:Outdated Decks"'
             }
         }
+    )
+    assert result == [282, 434, 313]
+    
+    
     
 def test_get_all_note_ids():
     client = AnkiConnectClient()
 
-    payload = client.get_all_note_ids()
+    client._invoke_request = Mock(return_value = [282, 434, 313])
 
-    assert payload == {
+    result = client.get_all_note_ids()
+    client._invoke_request.assert_called_once_with(
+        {
             "action": "findNotes",
             "version": 6,
             "params": {
                 "query": ""
             }
         }
+    )
+    assert result == [282, 434, 313]
+
     
 def test_get_note_id_field_data():
     client = AnkiConnectClient()
 
-    payload = client.get_note_id_field_data([1592036539578, 1592036547354])
+    client._invoke_request = Mock(return_value = [
+        {
+            "noteId": 1,
+            "modelName": "Basic",
+            "fields": {
+                "Front": {"value": "Q1", "order": 0},
+                "Back": {"value": "A1", "order": 1}
+            },
+            "tags": [],
+            "cards": []
+        }
+    ])
 
-    assert payload == {            
+    result = client.get_note_id_field_data([1483959289817])
+
+    client._invoke_request.assert_called_once_with({            
             "action": "notesInfo",
             "version": 6,
             "params": {
-                "notes": [1592036539578, 1592036547354]
-            }}
+                "notes": [1483959289817]
+            }})
+    assert result == [
+        {
+            "noteId": 1,
+            "modelName": "Basic",
+            "fields": {
+                "Front": {"value": "Q1", "order": 0},
+                "Back": {"value": "A1", "order": 1}
+            },
+            "tags": [],
+            "cards": []
+        }
+    ]

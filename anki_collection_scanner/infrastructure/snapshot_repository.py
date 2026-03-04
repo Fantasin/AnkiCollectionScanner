@@ -5,9 +5,9 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
-from ..domain.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.domain.result import Result
-from anki_collection_scanner.domain.exceptions import SnapshotRepositoryError, SnapshotCorruptedError, SnapshotNotFoundError
+from anki_collection_scanner.domain.domain_exceptions import SnapshotRepositoryError, SnapshotCorruptedError, SnapshotNotFoundError
 from anki_collection_scanner.application.ports.snapshot_repository_port import SnapshotRepositoryPort
 
 PATH_TO_ROOT = Path(__file__).resolve().parents[1]
