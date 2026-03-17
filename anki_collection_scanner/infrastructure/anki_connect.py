@@ -52,7 +52,7 @@ class AnkiConnectClient(AnkiConnectPort):
         }
         return self._invoke_request(payload)
 
-    def get_model_field_names(self, model_name: str) -> Dict[str, Any]:
+    def get_model_field_names(self, model_name: str) -> list[str]:
         payload=  {
             "action": "modelFieldNames",
             "version": self.version,
@@ -83,7 +83,7 @@ class AnkiConnectClient(AnkiConnectPort):
         }
         return self._invoke_request(payload)
     
-    def get_note_id_field_data(self, note_ids: list[int]) -> Dict[str, Any]:
+    def get_note_id_field_data(self, note_ids: list[int]) -> list[Dict[str, Any]]:
         payload = {            
             "action": "notesInfo",
             "version": self.version,
@@ -92,12 +92,34 @@ class AnkiConnectClient(AnkiConnectPort):
             }}
     
         return self._invoke_request(payload)
+    
+    def store_media_file(self, filename: str, base64_data: str):
+        payload = {
+            "action": "storeMediaFile",
+            "version": self.version,
+            "params": {
+            "filename": filename,
+            "data": base64_data,
+            "deleteExisting": False
+        }}
+        return self._invoke_request(payload)
+    
+    def update_note_fields(self, note_id: int, fields: Dict[str, str]):
+        payload = {
+        "action": "updateNoteFields",
+        "version": self.version,
+        "params": {
+            "note": {
+                "id": note_id,
+                "fields": fields
+            }
+        }}
+        return self._invoke_request(payload)
 
-    #TODO: add updateNoteFields payload
 
 """client = AnkiConnectClient()
-data = client.get_decks_and_ids()
-print(data)"""
+data = client.update_note_fields(1770757208180, {"Furigana": "test test"})"""
+
 
 
 

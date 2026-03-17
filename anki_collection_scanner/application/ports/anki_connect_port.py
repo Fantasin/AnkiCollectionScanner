@@ -34,3 +34,13 @@ class AnkiConnectPort(ABC):
     def get_note_id_field_data(self, note_ids: list[int])-> list[Dict[str, Any]]:
         """Returns field data for a list of note ids"""
         pass
+
+    @abstractmethod
+    def store_media_file(self, filename: str, base64_data: str):
+        """Stores base64 encoded media file in anki collection folder"""
+        pass
+
+    @abstractmethod
+    def update_note_fields(self, note_id: int, fields: Dict[str, str]):
+        """Updates field data for provided fields for specific note id"""
+        pass 

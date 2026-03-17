@@ -13,7 +13,7 @@ from anki_collection_scanner.application.application_exceptions import SyncError
 
 logger = logging.getLogger(__name__)
 
-class SyncCollectionUseCase():
+class SyncCollectionUseCase:
     def __init__(self, snapshot_repository: SnapshotRepositoryPort, anki_connect_client: AnkiConnectPort):
         if not isinstance(snapshot_repository, SnapshotRepositoryPort):
             raise TypeError("snapshot_repository must implement SnapshotRepositoryPort")

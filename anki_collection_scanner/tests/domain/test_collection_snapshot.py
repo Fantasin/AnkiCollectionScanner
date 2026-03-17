@@ -31,21 +31,15 @@ def test_model_dataclass_creation():
     assert model_snapshot.model_name == "Geography"
     assert model_snapshot.model_field_names == []
 
-def test_model_id_none():
+@pytest.mark.parametrize("invalid_id", [None, "", 0])
+def test_model_invalid_id(invalid_id):
     with pytest.raises(ValueError):
-        ModelSnapshot(cast(int, None), "Geography")
+        ModelSnapshot(invalid_id, "Geography")
 
-def test_model_id_empty():
+@pytest.mark.parametrize("invalid_name", [None, ""])
+def test_model_invalid_name(invalid_name):
     with pytest.raises(ValueError):
-        ModelSnapshot(cast(int, ""), "Geography")
-
-def test_model_name_none():
-    with pytest.raises(ValueError):
-        ModelSnapshot(1353588026860, cast(str, None))
-
-def test_model_name_empty():
-    with pytest.raises(ValueError):
-        ModelSnapshot(1353588026860, "")
+        ModelSnapshot(1353588026860, invalid_name)
 
 #deck tests
 def test_deck_dataclass_creation():
@@ -55,22 +49,15 @@ def test_deck_dataclass_creation():
     assert deck_snapshot.deck_name == "AnkiConnectAPI"
     assert deck_snapshot.note_count is None
 
-
-def test_deck_id_none():
+@pytest.mark.parametrize("invalid_id", [None, "", 0])
+def test_deck_invalid_id(invalid_id):
     with pytest.raises(ValueError):
-        DeckSnapshot(cast(int, None), "AnkiConnectAPI")
+        DeckSnapshot(invalid_id, "AnkiConnectAPI")
 
-def test_deck_id_empty():
+@pytest.mark.parametrize("invalid_name", [None, ""])
+def test_deck_invalid_name(invalid_name):
     with pytest.raises(ValueError):
-        DeckSnapshot(cast(int, ""), "AnkiConnectAPI")
-
-def test_deck_name_none():
-    with pytest.raises(ValueError):
-        DeckSnapshot(1731424301417, cast(str, None))
-
-def test_deck_name_empty():
-    with pytest.raises(ValueError):
-        DeckSnapshot(1731424301417, "")
+        DeckSnapshot(1731424301417, invalid_name)
 
 #note tests
 def test_note_dataclass_creation():
@@ -82,13 +69,10 @@ def test_note_dataclass_creation():
     assert note_snapshot.tags == []
     assert note_snapshot.note_fields == {}
 
-def test_note_id_none():
+@pytest.mark.parametrize("invalid_id", [None, "", 0])
+def test_note_invalid_id(invalid_id):
     with pytest.raises(ValueError):
-        NoteSnapshot(cast(int, None))
-
-def test_note_id_empty():
-    with pytest.raises(ValueError):
-        NoteSnapshot(cast(int, ""))
+        NoteSnapshot(invalid_id)
 
 #data flow tests
 def test_to_from_dict_flow():

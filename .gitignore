@@ -6,4 +6,6 @@ venv/
 *.egg-info/
 .vscode/
 *.log
-*.json 
+*.json
+local_audio_static/
+*.mp3
