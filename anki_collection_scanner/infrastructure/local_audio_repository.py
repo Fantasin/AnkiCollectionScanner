@@ -15,7 +15,7 @@ from collections import defaultdict
 from typing import Optional, List
 
 from anki_collection_scanner.application.ports.local_audio_repository_port import LocalAudioRepositoryPort
-from anki_collection_scanner.domain.audio_models import AudioFile
+from anki_collection_scanner.domain.audio_service.audio_models import AudioFile
 
 BASE_PROJECT_PATH = Path(__file__).resolve().parents[1]
 BASE_AUDIO_SOURCES_PATH = BASE_PROJECT_PATH / "local_audio_static"

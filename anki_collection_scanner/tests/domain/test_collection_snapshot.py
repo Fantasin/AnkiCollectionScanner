@@ -1,8 +1,8 @@
 import pytest
 
 from typing import cast
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot, DeckSnapshot
-from anki_collection_scanner.domain.collection_snapshot import ModelSnapshot, MetadataSnapshot, NoteSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot, DeckSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import ModelSnapshot, MetadataSnapshot, NoteSnapshot
 
 '''
 TODO: critically think about what test data might crash the program, design tests accordingly

@@ -6,7 +6,7 @@ from anki_collection_scanner.application.usecases.sync_collection import SyncCol
 from anki_collection_scanner.application.application_exceptions import SyncError
 from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
 from anki_collection_scanner.application.ports.snapshot_repository_port import SnapshotRepositoryPort
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 
 
 #TODO: add tests on failed pipeline during every step: fetch base, update base, enrich

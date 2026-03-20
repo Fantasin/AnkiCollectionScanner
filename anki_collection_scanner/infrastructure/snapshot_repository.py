@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any
 
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.domain.result import Result
 from anki_collection_scanner.domain.domain_exceptions import SnapshotRepositoryError, SnapshotCorruptedError, SnapshotNotFoundError
 from anki_collection_scanner.application.ports.snapshot_repository_port import SnapshotRepositoryPort

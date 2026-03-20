@@ -10,13 +10,27 @@ Conceptual orchestration flow:
 
 Return something like : Result[AddAudioReport, AddAudioError]:
 """
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
+
+import logging
+
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.domain.result import Result
+from datetime import datetime
+
+from anki_collection_scanner.domain.audio_service.audio_service_report import(
+    AudioOperationReport,
+    AudioOperationSuccess,
+    AudioOperationFailure,
+    AddAudioError
+)
 
 from anki_collection_scanner.application.ports.audio_preparation_service_port import AudioPreparationServicePort
 from anki_collection_scanner.application.ports.local_audio_repository_port import LocalAudioRepositoryPort
 from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
 
+logger = logging.getLogger(__name__)
+
+#TODO: consider adding snapshot_repository to constructor to save changes to snapshot
 class AddAudioToDeckUseCase:
     def __init__(
             self,
@@ -39,24 +53,81 @@ class AddAudioToDeckUseCase:
     #TODO: make a proper orchestration with error handling
     #TODO: check for existence of file in a media folder before running update_note_fields
     #implement method for deck selection to avoid writing it manually 
-    def add_audio_to_deck(self, deck_name: str):
+    def add_audio_to_deck(self, deck_name: str)-> Result[AudioOperationReport, AddAudioError]:
 
-        deck_note_ids = self.anki_connect_client.get_deck_note_ids(deck_name)
+        report = AudioOperationReport(deck_name)
 
-        transfer_objects = self.audio_preparation_service.prepare_audio_transfer_objects(deck_note_ids)
-        words = self.audio_preparation_service.extract_word_for_audio_retrieval(transfer_objects)
+        try:
+            #get deck note_ids
+            deck_note_ids = self.anki_connect_client.get_deck_note_ids(deck_name)
 
-        audio_files = self.local_audio_repository.get_audio_files(words)
+            if not deck_note_ids:
+                return Result.err(AddAudioError(
+                    message=f"Deck {deck_name} is empty",
+                    stage = "deck_notes_lookup"
+                ))
 
-        enriched_objects = self.audio_preparation_service.enrich_transfer_objects_with_audio_files(transfer_objects, audio_files)
+            #filter notes, create transfer objects and retrieve audio
+            transfer_objects = self.audio_preparation_service.prepare_audio_transfer_objects(deck_note_ids)
+            words = self.audio_preparation_service.extract_word_for_audio_retrieval(transfer_objects)
+            audio_files = self.local_audio_repository.get_audio_files(words)
+            enriched_objects = self.audio_preparation_service.enrich_transfer_objects_with_audio_files(transfer_objects, audio_files)
 
-        for note_id, transfer_object in enriched_objects.items():
-            self.anki_connect_client.store_media_file(transfer_object.audio.filename, transfer_object.audio.base64_data)
-            print(f"Note id: {note_id} with filename: {transfer_object.audio.filename} is uploaded to anki_media_folder")
-            self.anki_connect_client.update_note_fields(note_id, {transfer_object.audio_field: f"[sound:{transfer_object.audio.filename}]"})
-            print(f"Field: {transfer_object.audio_field} is updated with audio: [sound:{transfer_object.audio.filename}]")
+            for word in words:
+                if word not in audio_files:
+                    affected_notes = [note_id for note_id, obj in transfer_objects.items() if obj.word == word]
 
-        print(f"Audio addition is complete for deck: {deck_name}, number of notes: {len(enriched_objects)}")
+                    for note_id in affected_notes:
+                        report.skipped.append(
+                            AudioOperationFailure(
+                                note_id = note_id,
+                                word = word,
+                                reason = "no_audio_file",
+                                details="No audio file for word was found in local audio repository"
+                            )
+                        )
+
+            #upload files to anki media folder and update
+            for note_id, transfer_object in enriched_objects.items():
+                if transfer_object.audio is None:
+                    logger.debug("Transfer object don't have audio data, skipping note: %d", note_id)
+                    continue
+                try:
+                    #TODO: create a method get_stored_media_files and validate their existence
+                    self.anki_connect_client.store_media_file(transfer_object.audio.filename, transfer_object.audio.base64_data)
+                    print(f"Note id: {note_id} with filename: {transfer_object.audio.filename} is uploaded to anki_media_folder")
+                    self.anki_connect_client.update_note_fields(note_id, {transfer_object.audio_field: f"[sound:{transfer_object.audio.filename}]"})
+                    print(f"Field: {transfer_object.audio_field} is updated with audio: [sound:{transfer_object.audio.filename}]")
+
+                    report.successful.append(
+                        AudioOperationSuccess(
+                            note_id = note_id,
+                            word = transfer_object.word,
+                            filename = transfer_object.audio.filename
+                        )
+                    )
+                except Exception as e:
+                    logger.exception(f"Failed to process note: {note_id}")
+                    report.failed.append(
+                        AudioOperationFailure(
+                            note_id = note_id,
+                            word = transfer_object.word,
+                            reason = "upload_or_update_error",
+                            details = str(e)
+                        )
+                    )
+            report.timestamp_end = datetime.now()
+            logger.info("Audio addition is complete for deck: %s, number of notes: %d", deck_name, len(enriched_objects))
+            return Result.ok(report)
+        except Exception as e:
+            logger.exception("Audio operation failed")
+            return Result.err(
+                AddAudioError(
+                    message = str(e),
+                    stage="orchestration",
+                    cause = e
+                )
+            )
 
 
         

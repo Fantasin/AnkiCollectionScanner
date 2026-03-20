@@ -1,7 +1,7 @@
 import pytest
 
 from anki_collection_scanner.infrastructure.snapshot_repository import JSONSnapshotRepository
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.domain.domain_exceptions import SnapshotRepositoryError, SnapshotCorruptedError, SnapshotNotFoundError
 
 

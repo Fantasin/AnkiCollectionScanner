@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from anki_collection_scanner.application.usecases.sync_collection import SyncCollectionUseCase
 from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
 from anki_collection_scanner.application.ports.snapshot_repository_port import SnapshotRepositoryPort
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 
 @pytest.fixture
 def snapshot():

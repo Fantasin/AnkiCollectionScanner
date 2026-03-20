@@ -3,9 +3,9 @@ import re
 
 from typing import Dict
 
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.application.ports.audio_preparation_service_port import AudioPreparationServicePort
-from anki_collection_scanner.domain.audio_models import AudioFile, AudioTransferObject
+from anki_collection_scanner.domain.audio_service.audio_models import AudioFile, AudioTransferObject, CardRole
 
 AUDIO_PRESENT_PATTERN = r"\[sound:[^\]]+\]"
 
@@ -63,7 +63,8 @@ class AudioPreparationService(AudioPreparationServicePort):
             model_name = note_data.model,
             word = word,
             source_field = source_field,
-            audio_field = audio_field
+            audio_field = audio_field,
+            role = CardRole.SINGULAR #keep this as default, change for pairs during pair discovery
         )
 
     #TODO: for current model primary word is always present, for basic model this won't work. Revise later
@@ -93,10 +94,10 @@ class AudioPreparationService(AudioPreparationServicePort):
             match = re.search(AUDIO_PRESENT_PATTERN, field_value)
 
             if match:
-                print(f"Found audio match: {match[0]}, skipping note")
+                #print(f"Found audio match: {match[0]}, skipping note")
                 continue
 
-            print(f"Audio is missing for note id: {note_id}, model is and field data is {field_value}, adding to missing audio notes")
+            #print(f"Audio is missing for note id: {note_id}, model is and field data is {field_value}, adding to missing audio notes")
             missing_audio_notes.append(note_id)
 
         print(f"Resulting number of missing audio notes: {len(missing_audio_notes)}")
@@ -105,5 +106,9 @@ class AudioPreparationService(AudioPreparationServicePort):
     #pass return value to local_audio_repository
     def extract_word_for_audio_retrieval(self, transfer_objects: dict[int, AudioTransferObject]) -> list[str]:
         return [object.word for object in transfer_objects.values()]
+    
+
+    def discover_note_pairs(self, missing_audio_notes: list[int]):
+        pass
 
 

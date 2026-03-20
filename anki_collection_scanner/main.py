@@ -6,7 +6,7 @@ from anki_collection_scanner.infrastructure.anki_connect import AnkiConnectClien
 from anki_collection_scanner.infrastructure.snapshot_repository import JSONSnapshotRepository
 from anki_collection_scanner.infrastructure.local_audio_repository import LocalAudioRepository
 
-from anki_collection_scanner.domain.audio_preparation_service import AudioPreparationService
+from anki_collection_scanner.domain.audio_service.audio_preparation_service import AudioPreparationService
 
 from anki_collection_scanner.infrastructure.logging_setup import build_logging
 
@@ -29,7 +29,12 @@ def main():
     anki_client = AnkiConnectClient()
     audio_use_case = AddAudioToDeckUseCase(audio_prep_service, local_audio_repo, anki_client)
 
-    audio_use_case.add_audio_to_deck("AnkiConnectAPI")
+    result = audio_use_case.add_audio_to_deck("Japanese")
+    
+    if result.is_err():
+        print(result.unwrap_err())
+    print(result.unwrap().summary())
+    
 
 
 

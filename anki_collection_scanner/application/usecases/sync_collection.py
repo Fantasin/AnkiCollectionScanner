@@ -5,7 +5,7 @@ Why: Combines current scan_user_collection_first() + enrichment methods into one
 """
 import logging
 
-from anki_collection_scanner.domain.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
 from anki_collection_scanner.application.ports.snapshot_repository_port import SnapshotRepositoryPort
 from anki_collection_scanner.domain.result import Result
