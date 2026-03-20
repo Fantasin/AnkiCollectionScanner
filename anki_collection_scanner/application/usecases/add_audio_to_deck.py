@@ -88,6 +88,7 @@ class AddAudioToDeckUseCase:
                         )
 
             #upload files to anki media folder and update
+            logging.info("Starting upload to collection and notes updating...")
             for note_id, transfer_object in enriched_objects.items():
                 if transfer_object.audio is None:
                     logger.debug("Transfer object don't have audio data, skipping note: %d", note_id)
@@ -95,9 +96,9 @@ class AddAudioToDeckUseCase:
                 try:
                     #TODO: create a method get_stored_media_files and validate their existence
                     self.anki_connect_client.store_media_file(transfer_object.audio.filename, transfer_object.audio.base64_data)
-                    print(f"Note id: {note_id} with filename: {transfer_object.audio.filename} is uploaded to anki_media_folder")
+                    logger.debug(f"Note id: {note_id} with filename: {transfer_object.audio.filename} is uploaded to anki_media_folder")
                     self.anki_connect_client.update_note_fields(note_id, {transfer_object.audio_field: f"[sound:{transfer_object.audio.filename}]"})
-                    print(f"Field: {transfer_object.audio_field} is updated with audio: [sound:{transfer_object.audio.filename}]")
+                    logger.debug(f"Field: {transfer_object.audio_field} is updated with audio: [sound:{transfer_object.audio.filename}]")
 
                     report.successful.append(
                         AudioOperationSuccess(

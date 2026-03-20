@@ -1,11 +1,14 @@
 
 import re
+import logging
 
 from typing import Dict
 
 from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.application.ports.audio_preparation_service_port import AudioPreparationServicePort
 from anki_collection_scanner.domain.audio_service.audio_models import AudioFile, AudioTransferObject, CardRole
+
+logger = logging.getLogger(__name__)
 
 AUDIO_PRESENT_PATTERN = r"\[sound:[^\]]+\]"
 
@@ -23,18 +26,23 @@ class AudioPreparationService(AudioPreparationServicePort):
 
         transfer_objects = {}
 
+        card_reverse_card_notes = []
+        singular_card_notes = []
+
         for note_id in missing_audio_notes:
 
             note_data = self.snapshot.notes[note_id]
 
             if len(note_data.cards) <= 1:
-                #TODO: implement pair discovery process
-                continue
-
-            #forming transfer object for a note
+                singular_card_notes.append(note_id)
+            else:
+                card_reverse_card_notes.append(note_id)
+            
+        #TODO: add pair discovery process for all of the singular_card_notes here
+        for note_id in card_reverse_card_notes:
             transfer_objects[note_id] = self.build_transfer_objects(note_id)
 
-        print(f"Resulting number of notes: {len(transfer_objects)}")
+        logger.info("Resulting number of notes: %d", len(transfer_objects))
         return transfer_objects
     
     def enrich_transfer_objects_with_audio_files(self, transfer_objects: Dict[int, AudioTransferObject], audio_files: Dict[str, AudioFile])->Dict[int, AudioTransferObject]:
@@ -44,7 +52,7 @@ class AudioPreparationService(AudioPreparationServicePort):
             audio = audio_files.get(object.word)
 
             if not audio:
-                print(f"No audio was found for word: {object.word}")
+                logger.debug("No audio was found for word: %s", object.word)
                 continue
 
             object.audio = audio
@@ -94,13 +102,13 @@ class AudioPreparationService(AudioPreparationServicePort):
             match = re.search(AUDIO_PRESENT_PATTERN, field_value)
 
             if match:
-                #print(f"Found audio match: {match[0]}, skipping note")
+                logger.debug("Found audio match: %s, skipping note", match[0])
                 continue
 
-            #print(f"Audio is missing for note id: {note_id}, model is and field data is {field_value}, adding to missing audio notes")
+            logger.debug("Audio is missing for note id: %d, model is and field data is %s, adding to missing audio notes", note_id, field_value)
             missing_audio_notes.append(note_id)
 
-        print(f"Resulting number of missing audio notes: {len(missing_audio_notes)}")
+        logger.info("Resulting number of missing audio notes: %d", len(missing_audio_notes))
         return missing_audio_notes
 
     #pass return value to local_audio_repository
@@ -108,7 +116,27 @@ class AudioPreparationService(AudioPreparationServicePort):
         return [object.word for object in transfer_objects.values()]
     
 
-    def discover_note_pairs(self, missing_audio_notes: list[int]):
+    def discover_note_pairs(self, note_ids: list[int]):
         pass
 
-
+test_data  = [
+    {"Front": "～はちょっと", "Back": "not so good"},
+    {"Front": "起こる", "Back": "おこる (to occur, to happen)"},
+    {"Front": "訳", "Back": "わけ (reason, explanation)"},
+    {"Front": "褒める", "Back": "ほめる (to praise, хвалить) [sound:95d527446aca5339a5b8e2b62080f6da.mp3]"},
+    {"Front": "相手", "Back": "あいて (partner, opponent)"},
+    {"Front": "相変わらず", "Back": "あいかわらず (as usual (about behaviour))"},
+    {"Front": "まる", "Back": "circle, correct mark"},
+    {"Front": "to praise, хвалить", "Back": "褒める（ほめる） [sound:95d527446aca5339a5b8e2b62080f6da.mp3]"},
+    {"Front": "to occur, to happen", "Back": "起こる（おこる）"},
+    {"Front": "sad", "Back": "悲しい　(かなしい)"},
+    {"Front": "reason, explanation", "Back": "訳（わけ）"},
+    {"Front": "not so good", "Back": "～はちょっと"},
+    {"Front": "circle, correct mark", "Back": "まる"},
+    {"Front": "author", "Back": "作家 (さっか)"},
+    {"Front": "悲しい", "Back": "かなしい (sad)"},
+    {"Front": "作家", "Back": "さっか (author)"},
+    {"Front": "孤立", "Back": "こりつ (isolated)"},
+    {"Front": "音声あり", "Back": "value without audio [sound:example.mp3]"},
+    {"Front": "", "Back": "空 (empty)"},
+]

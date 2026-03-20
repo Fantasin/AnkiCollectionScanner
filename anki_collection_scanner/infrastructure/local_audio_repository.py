@@ -1,13 +1,7 @@
-"""
-Handles local scanning, finds audio file and scans it, transforms it to base64
-
-creates mapping for word-> filename, doesn't know anything about anki (save mapping to index.json and rely upon it on reruns)
-Suggested structure: word: {"nhk":"path1343.ddd", "forvo": "path313,dsd"...}
-
-"""
 import json
 import os 
 import base64
+import logging
 
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -17,12 +11,13 @@ from typing import Optional, List
 from anki_collection_scanner.application.ports.local_audio_repository_port import LocalAudioRepositoryPort
 from anki_collection_scanner.domain.audio_service.audio_models import AudioFile
 
+logger = logging.getLogger(__name__)
+
 BASE_PROJECT_PATH = Path(__file__).resolve().parents[1]
 BASE_AUDIO_SOURCES_PATH = BASE_PROJECT_PATH / "local_audio_static"
-#INDEX_FILE_PATH = BASE_PROJECT_PATH / "infrastructure" / "index.json"
 
-JPOD_INDEX_FILE_PATH = BASE_AUDIO_SOURCES_PATH / "jpod_files" / "index.json"
-JPOD_AUDIO_FILE_PATH = BASE_AUDIO_SOURCES_PATH / "jpod_files" / "audio"
+#JPOD_INDEX_FILE_PATH = BASE_AUDIO_SOURCES_PATH / "jpod_files" / "index.json"
+#JPOD_AUDIO_FILE_PATH = BASE_AUDIO_SOURCES_PATH / "jpod_files" / "audio"
 
 @dataclass(frozen=True)
 class AudioSourceConfig:
@@ -80,11 +75,11 @@ class LocalAudioRepository(LocalAudioRepositoryPort):
 
     def initialize(self):
         if not self.index_path.exists():
-            print("creating index.json")
             create_index_json(SOURCES, self.index_path)
+            logging.info("Created index.json")
 
         self.index = load_index_from_json(self.index_path)
-        print("loaded index.json")
+        logging.info("Loaded index.json")
 
     def find_audio_file_candidates(self, word: str) -> List[AudioCandidate]:
         return self.index.get(word, [])
@@ -126,7 +121,7 @@ class LocalAudioRepository(LocalAudioRepositoryPort):
             best_candidate = self.select_best_candidate(candidates)
 
             if not best_candidate:
-                print(f"Candidate was not found for word: {word}, skipping to next word...")
+                logging.debug("Candidate was not found for word: %s, skipping to next word...", word)
                 continue
 
             audio_file = self.build_audio_file(best_candidate)
@@ -141,7 +136,7 @@ def create_index_json(sources: list[AudioSourceConfig], index_file_path: Path):
         scanner = SCANNERS.get(source.name)
 
         if not scanner:
-            print(f"Scanner doesn't exist for source: {source.name}, skipping...")
+            logging.info("Scanner doesn't exist for source: %s, skipping...", source.name)
             continue
 
         index_path = source.index_path
@@ -152,11 +147,11 @@ def create_index_json(sources: list[AudioSourceConfig], index_file_path: Path):
         else:
             scanner(audio_path, source.name, index)
 
-        print(f"Scan for source: {source.name} is complete")
+        logging.info("Scan for source: %s is complete", source.name)
 
     data_to_json = index_to_json(index)
     save_index_to_json(data_to_json, index_file_path)
-    print("Saved index to json")
+    logging.info("Saved index to json")
 
 def index_to_json(index: AudioIndex):
 
@@ -186,7 +181,6 @@ def read_json_file(file_path):
 def save_index_to_json(index, index_file_path: Path):
     with open(index_file_path, "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=2)
-    print("saved to file")
 
 #convert json data back to datastructure
 def load_index_from_json(index_path):
