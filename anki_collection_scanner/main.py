@@ -29,7 +29,7 @@ def main():
     anki_client = AnkiConnectClient()
     audio_use_case = AddAudioToDeckUseCase(audio_prep_service, local_audio_repo, anki_client)
 
-    result = audio_use_case.add_audio_to_deck("Japanese")
+    result = audio_use_case.add_audio_to_deck("Japanese", snapshot)
     
     if result.is_err():
         print(result.unwrap_err())

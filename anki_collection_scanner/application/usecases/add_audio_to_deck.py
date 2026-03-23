@@ -53,7 +53,7 @@ class AddAudioToDeckUseCase:
     #TODO: make a proper orchestration with error handling
     #TODO: check for existence of file in a media folder before running update_note_fields
     #implement method for deck selection to avoid writing it manually 
-    def add_audio_to_deck(self, deck_name: str)-> Result[AudioOperationReport, AddAudioError]:
+    def add_audio_to_deck(self, deck_name: str, snapshot: CollectionSnapshot)-> Result[AudioOperationReport, AddAudioError]:
 
         report = AudioOperationReport(deck_name)
 
@@ -94,11 +94,26 @@ class AddAudioToDeckUseCase:
                     logger.debug("Transfer object don't have audio data, skipping note: %d", note_id)
                     continue
                 try:
+
                     #TODO: create a method get_stored_media_files and validate their existence
+                    #uploading to anki media folder
                     self.anki_connect_client.store_media_file(transfer_object.audio.filename, transfer_object.audio.base64_data)
                     logger.debug(f"Note id: {note_id} with filename: {transfer_object.audio.filename} is uploaded to anki_media_folder")
-                    self.anki_connect_client.update_note_fields(note_id, {transfer_object.audio_field: f"[sound:{transfer_object.audio.filename}]"})
-                    logger.debug(f"Field: {transfer_object.audio_field} is updated with audio: [sound:{transfer_object.audio.filename}]")
+
+                    #updating notes
+                    note_data = snapshot.notes[note_id]
+                    audio_field = transfer_object.audio_field
+
+                    current_value = note_data.note_fields[audio_field]["value"]
+                    audio_tag = f"[sound:{transfer_object.audio.filename}]"
+
+                    if not current_value:
+                        updated_value = current_value
+                    else:
+                        updated_value = f"{current_value} {audio_tag}"
+
+                    self.anki_connect_client.update_note_fields(note_id, {audio_field: updated_value})
+                    logger.debug(f"Field: {audio_field} is updated with audio: [sound:{transfer_object.audio.filename}]")
 
                     report.successful.append(
                         AudioOperationSuccess(
