@@ -10,7 +10,10 @@ from anki_collection_scanner.domain.audio_service.audio_preparation_service impo
 
 from anki_collection_scanner.infrastructure.logging_setup import build_logging
 
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 BASE_PROJECT_PATH = Path(__file__).resolve().parents[0]
 BASE_AUDIO_SOURCES_PATH = BASE_PROJECT_PATH / "local_audio_static"
@@ -32,11 +35,10 @@ def main():
     result = audio_use_case.add_audio_to_deck("Japanese", snapshot)
     
     if result.is_err():
-        print(result.unwrap_err())
-    print(result.unwrap().summary())
+        logger.error("Failed to add audio to deck: %s", result.unwrap_err())
+        return
+    logger.info(result.unwrap().summary())
     
-
-
 
 if __name__ == "__main__":
     main()

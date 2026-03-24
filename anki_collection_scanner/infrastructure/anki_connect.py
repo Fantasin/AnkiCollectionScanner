@@ -30,7 +30,6 @@ class AnkiConnectClient(AnkiConnectPort):
         r.raise_for_status()
 
         data = r.json()
-        logger.debug("Received raw response data for action: %s", payload["action"])
 
         if data["error"] is not None:
             raise RuntimeError(f"API error occured: {data['error']}")

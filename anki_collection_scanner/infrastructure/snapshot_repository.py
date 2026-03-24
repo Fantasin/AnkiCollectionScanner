@@ -24,33 +24,33 @@ class JSONSnapshotRepository(SnapshotRepositoryPort):
             data_to_save = snapshot.to_dict()
             with self.file_path.open("w", encoding="utf-8") as f:
                 json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-            logger.info("Snapshot's data was saved to a file successfully")
+            logger.info("Snapshot saved to %s", self.file_path)
             return Result.ok(None)
         except OSError as e:
-            logger.error(f"I/O error while saving snapshot: {e}")
+            logger.exception("I/O error while saving snapshot")
             return Result.err(SnapshotRepositoryError(f"I/O error: {e}"))
         except Exception as e:
-            logger.error(f"Unexpected error occured when saving snapshot: {e}")
+            logger.exception("Unexpected error when saving snapshot")
             return Result.err(SnapshotRepositoryError(f"Unexpected error: {e}"))
     
     #TODO: move decision on creating a blank snapshot to orchestrator if a file doesn't exist
     def load_snapshot(self)-> Result[CollectionSnapshot, SnapshotRepositoryError]:
 
         if not self.file_path.is_file():
-            logger.info("File doesn't exist, returning error")
+            logger.warning("Snapshot file not found: %s", self.file_path)
             return Result.err(SnapshotNotFoundError(self.file_path))
         try:
             with self.file_path.open("r", encoding="utf-8") as f:
                 json_data = json.load(f)
 
-            snapshot = CollectionSnapshot().from_dict(json_data)
+            snapshot = CollectionSnapshot.from_dict(json_data)
             logger.info("Snapshot loaded successfully")
             return Result.ok(snapshot)
         except json.JSONDecodeError:
-            logger.error("JSON structure corrupted")
+            logger.error("Snapshot file contains invalid JSON: %s", self.file_path)
             return Result.err(SnapshotCorruptedError(self.file_path))
         except Exception as e:
-            logger.error(f"Unexpected error occured when loading snapshot: {e}")
+            logger.exception("Unexpected error when loading snapshot")
             return Result.err(SnapshotRepositoryError(f"Unexpected error: {e}"))
 
             

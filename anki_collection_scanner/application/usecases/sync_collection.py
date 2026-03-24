@@ -26,13 +26,13 @@ class SyncCollectionUseCase:
     def sync_user_collection(self, snapshot: CollectionSnapshot):
 
         decks_data, models_data, notes_ids = self.fetch_base_collection_data()
-        logger.info("Got data for decks, models and notes")
+        logger.debug("Fetched base collection data (decks, models, note IDs)")
 
         self.update_snapshot_base_collection_data(snapshot, decks_data, models_data, notes_ids)
-        logger.info("Formed base structure, added decks, models and notes data")
+        logger.debug("Snapshot base structure updated")
 
         self.enrich_snapshot(snapshot)
-        logger.info("Enriched data: added field models, note field data and deck note count and hash")
+        logger.debug("Snapshot enriched (field data, note content, deck hashes)")
 
     def fetch_base_collection_data(self):
         decks = self.anki_connect_client.get_decks_and_ids()

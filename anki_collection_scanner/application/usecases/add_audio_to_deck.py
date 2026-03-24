@@ -88,17 +88,15 @@ class AddAudioToDeckUseCase:
                         )
 
             #upload files to anki media folder and update
-            logging.info("Starting upload to collection and notes updating...")
+            logger.info("Starting upload to Anki media folder and updating note fields...")
             for note_id, transfer_object in enriched_objects.items():
                 if transfer_object.audio is None:
-                    logger.debug("Transfer object don't have audio data, skipping note: %d", note_id)
                     continue
                 try:
 
                     #TODO: create a method get_stored_media_files and validate their existence
                     #uploading to anki media folder
                     self.anki_connect_client.store_media_file(transfer_object.audio.filename, transfer_object.audio.base64_data)
-                    logger.debug(f"Note id: {note_id} with filename: {transfer_object.audio.filename} is uploaded to anki_media_folder")
 
                     #updating notes
                     note_data = snapshot.notes[note_id]
@@ -108,12 +106,12 @@ class AddAudioToDeckUseCase:
                     audio_tag = f"[sound:{transfer_object.audio.filename}]"
 
                     if not current_value:
-                        updated_value = current_value
+                        updated_value = audio_tag
                     else:
                         updated_value = f"{current_value} {audio_tag}"
 
                     self.anki_connect_client.update_note_fields(note_id, {audio_field: updated_value})
-                    logger.debug(f"Field: {audio_field} is updated with audio: [sound:{transfer_object.audio.filename}]")
+                    logger.debug("Note %d: '%s' uploaded and field '%s' updated", note_id, transfer_object.audio.filename, audio_field)
 
                     report.successful.append(
                         AudioOperationSuccess(
@@ -123,7 +121,7 @@ class AddAudioToDeckUseCase:
                         )
                     )
                 except Exception as e:
-                    logger.exception(f"Failed to process note: {note_id}")
+                    logger.exception("Failed to process note %d", note_id)
                     report.failed.append(
                         AudioOperationFailure(
                             note_id = note_id,

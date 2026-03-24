@@ -64,7 +64,6 @@ class AudioPreparationService(AudioPreparationServicePort):
             audio = audio_files.get(object.word)
 
             if not audio:
-                logger.debug("No audio was found for word: %s", object.word)
                 continue
 
             object.audio = audio
@@ -137,10 +136,8 @@ class AudioPreparationService(AudioPreparationServicePort):
             match = re.search(AUDIO_PRESENT_PATTERN, field_value)
 
             if match:
-                logger.debug("Found audio match: %s, skipping note", match[0])
                 continue
 
-            logger.debug("Audio is missing for note id: %d, model is and field data is %s, adding to missing audio notes", note_id, field_value)
             missing_audio_notes.append(note_id)
 
         logger.info("Resulting number of missing audio notes: %d", len(missing_audio_notes))
@@ -168,8 +165,8 @@ class AudioPreparationService(AudioPreparationServicePort):
             elif find_jp_text(cleaned_back, jp_text_pattern):
                 reverse_cards[id] = new_note
             else:
-                print(f"Unknown pattern for note: {note}")
-        print(f"Number of cards: {len(cards)} and number of reverse cards: {len(reverse_cards)}")
+                logger.warning("Could not classify note (no JP text found), skipping: %s", note)
+        logger.debug("Categorized notes: %d forward cards, %d reverse cards", len(cards), len(reverse_cards))
 
         return cards, reverse_cards
 
@@ -198,7 +195,7 @@ class AudioPreparationService(AudioPreparationServicePort):
                 if rev_id in used_reverse:
                     continue
                 if jp_word in rev_card["Back"]:
-                    print(f"Match found: {jp_word} <-> {rev_card["Back"]}")
+                    logger.debug("Pair matched: '%s' (card %d) <-> (rev_card %d)", jp_word, card_id, rev_id)
                     pairs[jp_word] = (card_id, rev_id)
                     used_reverse.add(rev_id)
                     break

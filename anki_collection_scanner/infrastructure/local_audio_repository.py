@@ -16,9 +16,6 @@ logger = logging.getLogger(__name__)
 BASE_PROJECT_PATH = Path(__file__).resolve().parents[1]
 BASE_AUDIO_SOURCES_PATH = BASE_PROJECT_PATH / "local_audio_static"
 
-#JPOD_INDEX_FILE_PATH = BASE_AUDIO_SOURCES_PATH / "jpod_files" / "index.json"
-#JPOD_AUDIO_FILE_PATH = BASE_AUDIO_SOURCES_PATH / "jpod_files" / "audio"
-
 @dataclass(frozen=True)
 class AudioSourceConfig:
     name: str
@@ -76,10 +73,10 @@ class LocalAudioRepository(LocalAudioRepositoryPort):
     def initialize(self):
         if not self.index_path.exists():
             create_index_json(SOURCES, self.index_path)
-            logging.info("Created index.json")
+            logger.info("Created audio index at %s", self.index_path)
 
         self.index = load_index_from_json(self.index_path)
-        logging.info("Loaded index.json")
+        logger.info("Loaded audio index from %s (%d entries)", self.index_path, len(self.index))
 
     def find_audio_file_candidates(self, word: str) -> List[AudioCandidate]:
         return self.index.get(word, [])
@@ -121,7 +118,7 @@ class LocalAudioRepository(LocalAudioRepositoryPort):
             best_candidate = self.select_best_candidate(candidates)
 
             if not best_candidate:
-                logging.debug("Candidate was not found for word: %s, skipping to next word...", word)
+                logger.debug("No audio candidate found for word: %s", word)
                 continue
 
             audio_file = self.build_audio_file(best_candidate)
@@ -136,7 +133,7 @@ def create_index_json(sources: list[AudioSourceConfig], index_file_path: Path):
         scanner = SCANNERS.get(source.name)
 
         if not scanner:
-            logging.info("Scanner doesn't exist for source: %s, skipping...", source.name)
+            logger.warning("No scanner registered for source: %s, skipping", source.name)
             continue
 
         index_path = source.index_path
@@ -147,11 +144,11 @@ def create_index_json(sources: list[AudioSourceConfig], index_file_path: Path):
         else:
             scanner(audio_path, source.name, index)
 
-        logging.info("Scan for source: %s is complete", source.name)
+        logger.info("Scan complete for source: %s", source.name)
 
     data_to_json = index_to_json(index)
     save_index_to_json(data_to_json, index_file_path)
-    logging.info("Saved index to json")
+    logger.info("Audio index saved to %s", index_file_path)
 
 def index_to_json(index: AudioIndex):
 
