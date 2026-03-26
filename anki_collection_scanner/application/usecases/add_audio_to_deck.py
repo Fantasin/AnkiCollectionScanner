@@ -27,6 +27,7 @@ from anki_collection_scanner.domain.audio_service.audio_service_report import(
 from anki_collection_scanner.application.ports.audio_preparation_service_port import AudioPreparationServicePort
 from anki_collection_scanner.application.ports.local_audio_repository_port import LocalAudioRepositoryPort
 from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
+from anki_collection_scanner.infrastructure.media_cache_repository import MediaCacheRepository
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,8 @@ class AddAudioToDeckUseCase:
             self,
             audio_preparation_service: AudioPreparationServicePort,
             local_audio_repository: LocalAudioRepositoryPort,
-            anki_connect_client: AnkiConnectPort):
+            anki_connect_client: AnkiConnectPort,
+            media_cache_repository: MediaCacheRepository):
         
         if not isinstance(audio_preparation_service, AudioPreparationServicePort):
             raise TypeError("audio_preparation_service must implement AudioPreparationServicePort")
@@ -49,6 +51,8 @@ class AddAudioToDeckUseCase:
         if not isinstance(anki_connect_client, AnkiConnectPort):
             raise TypeError("anki_connect_client must implement AnkiConnectPort")
         self.anki_connect_client = anki_connect_client
+
+        self.media_cache_repository = media_cache_repository
 
     #TODO: make a proper orchestration with error handling
     #TODO: check for existence of file in a media folder before running update_note_fields
@@ -94,9 +98,10 @@ class AddAudioToDeckUseCase:
                     continue
                 try:
 
-                    #TODO: create a method get_stored_media_files and validate their existence
-                    #uploading to anki media folder
-                    self.anki_connect_client.store_media_file(transfer_object.audio.filename, transfer_object.audio.base64_data)
+                    # checking existence in media cache before uploading to anki media folder
+                    if not self.media_cache_repository.contains(transfer_object.audio.filename):
+                        self.anki_connect_client.store_media_file(transfer_object.audio.filename, transfer_object.audio.base64_data)
+                        self.media_cache_repository.add(transfer_object.audio.filename)
 
                     #updating notes
                     note_data = snapshot.notes[note_id]

@@ -5,6 +5,7 @@ from anki_collection_scanner.application.usecases.add_audio_to_deck import AddAu
 from anki_collection_scanner.infrastructure.anki_connect import AnkiConnectClient
 from anki_collection_scanner.infrastructure.snapshot_repository import JSONSnapshotRepository
 from anki_collection_scanner.infrastructure.local_audio_repository import LocalAudioRepository
+from anki_collection_scanner.infrastructure.media_cache_repository import MediaCacheRepository
 
 from anki_collection_scanner.domain.audio_service.audio_preparation_service import AudioPreparationService
 
@@ -30,7 +31,9 @@ def main():
     local_audio_repo = LocalAudioRepository(INDEX_FILE_PATH)
     local_audio_repo.initialize()
     anki_client = AnkiConnectClient()
-    audio_use_case = AddAudioToDeckUseCase(audio_prep_service, local_audio_repo, anki_client)
+    media_cache_repo = MediaCacheRepository()
+    
+    audio_use_case = AddAudioToDeckUseCase(audio_prep_service, local_audio_repo, anki_client, media_cache_repo)
 
     result = audio_use_case.add_audio_to_deck("Japanese", snapshot)
     
