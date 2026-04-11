@@ -7,6 +7,7 @@ from typing import Dict, Optional
 
 from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.application.ports.audio_preparation_service_port import AudioPreparationServicePort
+from anki_collection_scanner.application.field_config import FieldConfig
 from anki_collection_scanner.domain.audio_service.audio_models import AudioFile, AudioTransferObject, CardRole
 
 
@@ -16,17 +17,15 @@ AUDIO_PRESENT_PATTERN = r"\[sound:[^\]]+\]"
 JP_SYMBOLS_PATTERN = r"[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBF]"
 
 #TODO: think about how to discover this at runtime
-TARGET_FIELDS = {"Kartochki delaem dve srazu": {"Primary field": "Word", "Secondary field": "Furigana", "Audio field": "Furigana"}, 
-                 "Basic-1ba65": {"Primary field":"Front", "Secondary field": "Back", "Audio field": "Back"}}
 
 
 class AudioPreparationService(AudioPreparationServicePort):
-    def __init__(self, snapshot: CollectionSnapshot):
-        self.snapshot = snapshot
+    def __init__(self):
+        pass
 
     #TODO: bugs to get rid of: pass only one transfer object, update pair card after, revise updating card to not delete existing content
-    def prepare_audio_transfer_objects(self, deck_note_ids: list[int]) -> Dict[int, AudioTransferObject]:
-        missing_audio_notes = self.find_missing_audio(deck_note_ids)
+    def prepare_audio_transfer_objects(self, deck_note_ids: list[int], snapshot: CollectionSnapshot, target_fields: Dict[str, FieldConfig]) -> Dict[int, AudioTransferObject]:
+        missing_audio_notes = self.find_missing_audio(snapshot, target_fields, deck_note_ids)
 
         transfer_objects = {}
 
@@ -35,24 +34,22 @@ class AudioPreparationService(AudioPreparationServicePort):
 
         for note_id in missing_audio_notes:
 
-            note_data = self.snapshot.notes[note_id]
+            note_data = snapshot.notes[note_id]
 
             if len(note_data.cards) <= 1:
                 card_reverse_card_notes.append(note_id)
             else:
                 singular_card_notes.append(note_id)
 
-        #TODO: call find_pairs here and resolve roles and then pass pair_id to build_transfer_objects
-        pairs = self.find_matches(card_reverse_card_notes)
+        pairs = self.find_matches(snapshot, target_fields, card_reverse_card_notes)
 
         for word, note_id_pair in pairs.items():
             card_id, rev_card_id = note_id_pair
-            transfer_objects[card_id] = self.build_transfer_objects(card_id, CardRole.PAIR_FORWARD, rev_card_id, word)
-            transfer_objects[rev_card_id] = self.build_transfer_objects(rev_card_id, CardRole.PAIR_REVERSE, card_id, word)
+            transfer_objects[card_id] = self.build_transfer_objects(snapshot, target_fields, card_id, CardRole.PAIR_FORWARD, rev_card_id, word)
+            transfer_objects[rev_card_id] = self.build_transfer_objects(snapshot, target_fields, rev_card_id, CardRole.PAIR_REVERSE, card_id, word)
                  
-        #TODO: pass role to build_transfer_object here
         for note_id in singular_card_notes:
-            transfer_objects[note_id] = self.build_transfer_objects(note_id, CardRole.SINGULAR)
+            transfer_objects[note_id] = self.build_transfer_objects(snapshot, target_fields, note_id, CardRole.SINGULAR)
 
         logger.info("Resulting number of notes: %d", len(transfer_objects))
         return transfer_objects
@@ -74,14 +71,14 @@ class AudioPreparationService(AudioPreparationServicePort):
         return enriched_objects
     
     #TODO: adjust this function to handle object creation based on CardRole + add optional pair_id to parameters
-    def build_transfer_objects(self, note_id: int, role: CardRole, pair_id: Optional[int] = None, word: Optional[str] = None) -> AudioTransferObject:
+    def build_transfer_objects(self, snapshot: CollectionSnapshot, target_fields: Dict[str, FieldConfig], note_id: int, role: CardRole, pair_id: Optional[int] = None, word: Optional[str] = None) -> AudioTransferObject:
 
-        note_data = self.snapshot.notes[note_id]
+        note_data = snapshot.notes[note_id]
 
         if role == CardRole.SINGULAR:
-            source_field, audio_field, word = self.resolve_target_fields_singular_card(note_data)
+            source_field, audio_field, word = self.resolve_target_fields_singular_card(note_data, target_fields)
         elif role in (CardRole.PAIR_FORWARD, CardRole.PAIR_REVERSE):
-            source_field, audio_field = self.resolve_target_fields_pair(note_data, role)
+            source_field, audio_field = self.resolve_target_fields_pair(note_data, role, target_fields)
 
             if word is None:
                 word = note_data.note_fields[source_field]["value"]
@@ -99,13 +96,13 @@ class AudioPreparationService(AudioPreparationServicePort):
         )
 
     #TODO: for current model primary word is always present, for basic model this won't work. Revise later
-    def resolve_target_fields_singular_card(self, note_data):
+    def resolve_target_fields_singular_card(self, note_data, target_fields: Dict[str, FieldConfig]):
 
-        model_config = TARGET_FIELDS[note_data.model]
+        model_config = target_fields[note_data.model]
 
-        primary_field = model_config["Primary field"]
-        secondary_field = model_config["Secondary field"]
-        audio_field = model_config["Audio field"]
+        primary_field = model_config.primary_field
+        secondary_field = model_config.secondary_field
+        audio_field = model_config.audio_field
 
         primary_word = note_data.note_fields[primary_field]["value"]
 
@@ -114,23 +111,23 @@ class AudioPreparationService(AudioPreparationServicePort):
 
         return source_field, audio_field, word
     
-    def resolve_target_fields_pair(self, note_data, role: CardRole):
-        model_config = TARGET_FIELDS[note_data.model]
+    def resolve_target_fields_pair(self, note_data, role: CardRole, target_fields: Dict[str, FieldConfig]):
+        model_config = target_fields[note_data.model]
 
         if role == CardRole.PAIR_FORWARD:
-            source_field = model_config["Primary field"]
+            source_field = model_config.primary_field
         else:
-            source_field = model_config["Secondary field"]
-        audio_field = model_config["Audio field"]
+            source_field = model_config.secondary_field
+        audio_field = model_config.audio_field
 
         return source_field, audio_field
 
-    def find_missing_audio(self, deck_note_ids: list[int]) -> list[int]:
+    def find_missing_audio(self, snapshot: CollectionSnapshot, target_fields: Dict[str, FieldConfig], deck_note_ids: list[int]) -> list[int]:
         missing_audio_notes = []
         for note_id in deck_note_ids:
-            note_data = self.snapshot.notes[note_id]
+            note_data = snapshot.notes[note_id]
 
-            missing_audio_field = TARGET_FIELDS[note_data.model]["Audio field"]
+            missing_audio_field = target_fields[note_data.model].audio_field
             field_value = note_data.note_fields[missing_audio_field]["value"]
 
             match = re.search(AUDIO_PRESENT_PATTERN, field_value)
@@ -170,13 +167,13 @@ class AudioPreparationService(AudioPreparationServicePort):
 
         return cards, reverse_cards
 
-    def find_matches(self, note_ids: list[int]) -> dict[str, tuple[int, int]]:
+    def find_matches(self, snapshot: CollectionSnapshot, target_fields: Dict[str, FieldConfig], note_ids: list[int]) -> dict[str, tuple[int, int]]:
         data = {}
 
         for note_id in note_ids:
-            note_data = self.snapshot.notes[note_id]
-            front = TARGET_FIELDS[note_data.model]["Primary field"]
-            back = TARGET_FIELDS[note_data.model]["Secondary field"]
+            note_data = snapshot.notes[note_id]
+            front = target_fields[note_data.model].primary_field
+            back = target_fields[note_data.model].secondary_field
 
             data[note_id] = {
                 "Front": note_data.note_fields[front]["value"],

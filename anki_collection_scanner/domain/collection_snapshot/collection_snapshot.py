@@ -165,9 +165,4 @@ class CollectionSnapshot:
         sorted_notes = sorted(note_ids)
         joined = ",".join(map(str, sorted_notes))
         return hashlib.sha256(joined.encode("utf-8")).hexdigest()
-        
-
-"""snapshot = CollectionSnapshot()
-snapshot.update_note_data(note_data)
-
-print(snapshot.notes)"""
+    

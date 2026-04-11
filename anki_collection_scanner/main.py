@@ -6,6 +6,7 @@ from anki_collection_scanner.infrastructure.anki_connect import AnkiConnectClien
 from anki_collection_scanner.infrastructure.snapshot_repository import JSONSnapshotRepository
 from anki_collection_scanner.infrastructure.local_audio_repository import LocalAudioRepository
 from anki_collection_scanner.infrastructure.media_cache_repository import MediaCacheRepository
+from anki_collection_scanner.infrastructure.field_config_repository import FieldConfigRepository
 
 from anki_collection_scanner.domain.audio_service.audio_preparation_service import AudioPreparationService
 
@@ -20,28 +21,66 @@ BASE_PROJECT_PATH = Path(__file__).resolve().parents[0]
 BASE_AUDIO_SOURCES_PATH = BASE_PROJECT_PATH / "local_audio_static"
 INDEX_FILE_PATH = BASE_PROJECT_PATH / "infrastructure" / "index.json"
 
-def main():
-    build_logging()
-    orchestrator = SyncCollectionUseCase(JSONSnapshotRepository(), AnkiConnectClient())
-    orchestrator.execute_sync_collection_use_case()
+#preparing app with dependency injection. Useful for GUI
+def build_app():
+    sync_collection_use_case = SyncCollectionUseCase(JSONSnapshotRepository(), AnkiConnectClient())
 
-    repo = JSONSnapshotRepository()
-    snapshot = repo.load_snapshot().unwrap()
-    audio_prep_service = AudioPreparationService(snapshot)
+    audio_prep_service = AudioPreparationService() 
     local_audio_repo = LocalAudioRepository(INDEX_FILE_PATH)
     local_audio_repo.initialize()
     anki_client = AnkiConnectClient()
     media_cache_repo = MediaCacheRepository()
-    
+    field_config_repo = FieldConfigRepository()
     audio_use_case = AddAudioToDeckUseCase(audio_prep_service, local_audio_repo, anki_client, media_cache_repo)
 
-    result = audio_use_case.add_audio_to_deck("Japanese", snapshot)
-    
+    return {
+        "sync_collection_use_case": sync_collection_use_case,
+        "audio_use_case": audio_use_case,
+        "snapshot_repository": sync_collection_use_case.snapshot_repository,
+        "field_config_repository": field_config_repo
+    }
+
+def sync_on_startup(sync_collection_use_case: SyncCollectionUseCase):
+    result = sync_collection_use_case.execute_sync_collection_use_case()
+
     if result.is_err():
-        logger.error("Failed to add audio to deck: %s", result.unwrap_err())
-        return
-    logger.info(result.unwrap().summary())
+        return {
+            "success": False,
+            "error": result.unwrap_err()
+        }
+    return {
+        "success": True,
+        "snapshot": result.unwrap()
+    }
+
+def sync_on_shutdown(sync_collection_use_case: SyncCollectionUseCase):
+    try:
+        result = sync_collection_use_case.execute_sync_collection_use_case()
+
+        if result.is_err():
+            logger.error("Shutdown sync failed: %s", result.unwrap_err())
+
+    except Exception as e:
+        logger.exception("Unexpected shutdown sync error: %s", e)
+
+def sync_manual(sync_collection_use_case: SyncCollectionUseCase):
+    result = sync_collection_use_case.execute_sync_collection_use_case()
+
+    if result.is_err():
+        return {
+            "success": False,
+            "error": result.unwrap_err()
+        }
+    return {
+        "success": True,
+        "snapshot": result.unwrap()
+    }
     
+def main():
+    build_logging()
+    app_dependencies = build_app()
+    from anki_collection_scanner.gui.app import App
+    App(app_dependencies).run()
 
 if __name__ == "__main__":
     main()

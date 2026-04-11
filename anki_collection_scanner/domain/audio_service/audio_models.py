@@ -13,7 +13,7 @@ class CardRole(Enum):
     SINGULAR = "singular"
     PAIR_FORWARD = "forward"
     PAIR_REVERSE = "reverse"
-
+ 
 @dataclass
 class AudioTransferObject:
     #parameters at the stage of discovery

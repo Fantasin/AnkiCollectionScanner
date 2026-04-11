@@ -4,10 +4,12 @@ from typing import Dict
 from abc import ABC, abstractmethod
 
 from anki_collection_scanner.domain.audio_service.audio_models import AudioFile, AudioTransferObject
+from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
+from anki_collection_scanner.application.field_config import FieldConfig
 
 class AudioPreparationServicePort(ABC):
     @abstractmethod
-    def prepare_audio_transfer_objects(self, deck_note_ids: list[int]) -> Dict[int, AudioTransferObject]:
+    def prepare_audio_transfer_objects(self, deck_note_ids: list[int], snapshot: CollectionSnapshot, target_fields: Dict[str, FieldConfig]) -> Dict[int, AudioTransferObject]:
         pass
 
     @abstractmethod

@@ -11,11 +11,15 @@ Conceptual orchestration flow:
 Return something like : Result[AddAudioReport, AddAudioError]:
 """
 
+
 import logging
 
+from datetime import datetime
+from typing import Dict
+
+from anki_collection_scanner.application.field_config import FieldConfig
 from anki_collection_scanner.domain.collection_snapshot.collection_snapshot import CollectionSnapshot
 from anki_collection_scanner.domain.result import Result
-from datetime import datetime
 
 from anki_collection_scanner.domain.audio_service.audio_service_report import(
     AudioOperationReport,
@@ -27,7 +31,7 @@ from anki_collection_scanner.domain.audio_service.audio_service_report import(
 from anki_collection_scanner.application.ports.audio_preparation_service_port import AudioPreparationServicePort
 from anki_collection_scanner.application.ports.local_audio_repository_port import LocalAudioRepositoryPort
 from anki_collection_scanner.application.ports.anki_connect_port import AnkiConnectPort
-from anki_collection_scanner.infrastructure.media_cache_repository import MediaCacheRepository
+from anki_collection_scanner.application.ports.media_cache_repository_port import MediaCacheRepositoryPort
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +42,7 @@ class AddAudioToDeckUseCase:
             audio_preparation_service: AudioPreparationServicePort,
             local_audio_repository: LocalAudioRepositoryPort,
             anki_connect_client: AnkiConnectPort,
-            media_cache_repository: MediaCacheRepository):
+            media_cache_repository: MediaCacheRepositoryPort):
         
         if not isinstance(audio_preparation_service, AudioPreparationServicePort):
             raise TypeError("audio_preparation_service must implement AudioPreparationServicePort")
@@ -52,12 +56,12 @@ class AddAudioToDeckUseCase:
             raise TypeError("anki_connect_client must implement AnkiConnectPort")
         self.anki_connect_client = anki_connect_client
 
+        if not isinstance(media_cache_repository, MediaCacheRepositoryPort):
+            raise TypeError("media_cache_repository must implement MediaCacheRepositoryPort")
         self.media_cache_repository = media_cache_repository
 
-    #TODO: make a proper orchestration with error handling
-    #TODO: check for existence of file in a media folder before running update_note_fields
-    #implement method for deck selection to avoid writing it manually 
-    def add_audio_to_deck(self, deck_name: str, snapshot: CollectionSnapshot)-> Result[AudioOperationReport, AddAudioError]:
+    
+    def add_audio_to_deck(self, deck_name: str, snapshot: CollectionSnapshot, target_fields: Dict[str, FieldConfig])-> Result[AudioOperationReport, AddAudioError]:
 
         report = AudioOperationReport(deck_name)
 
@@ -71,8 +75,17 @@ class AddAudioToDeckUseCase:
                     stage = "deck_notes_lookup"
                 ))
 
+            models_in_deck = {snapshot.notes[note_id].model for note_id in deck_note_ids}
+            unconfigured_models = models_in_deck - target_fields.keys()
+
+            if unconfigured_models:
+                return Result.err(AddAudioError(
+                    message=f"No fields config for models: {unconfigured_models}",
+                    stage = "config_validation"
+                ))
+
             #filter notes, create transfer objects and retrieve audio
-            transfer_objects = self.audio_preparation_service.prepare_audio_transfer_objects(deck_note_ids)
+            transfer_objects = self.audio_preparation_service.prepare_audio_transfer_objects(deck_note_ids, snapshot, target_fields)
             words = self.audio_preparation_service.extract_word_for_audio_retrieval(transfer_objects)
             audio_files = self.local_audio_repository.get_audio_files(words)
             enriched_objects = self.audio_preparation_service.enrich_transfer_objects_with_audio_files(transfer_objects, audio_files)

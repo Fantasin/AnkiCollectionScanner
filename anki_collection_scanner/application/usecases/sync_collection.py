@@ -68,7 +68,11 @@ class SyncCollectionUseCase:
             note_ids = self.anki_connect_client.get_deck_note_ids(deck.deck_name)
             notes_hash = snapshot.compute_note_hash(note_ids)
             snapshot.update_deck_note_count_and_hash(id, len(note_ids), notes_hash)
-    
+
+    #helper method for GUI
+    def fetch_deck_note_ids(self, deck_name: str):
+        return self.anki_connect_client.get_deck_note_ids(deck_name)
+
     #pipeline execution
     def execute_sync_collection_use_case(self)-> Result[CollectionSnapshot, SyncError]:
         snapshot = CollectionSnapshot()

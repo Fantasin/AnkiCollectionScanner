@@ -25,10 +25,11 @@ Bulk insert example:
 import json
 
 from pathlib import Path
+from anki_collection_scanner.application.ports.media_cache_repository_port import MediaCacheRepositoryPort
 
 _MEDIA_CACHE = Path(__file__).resolve().parents[0] / "media_cache.json"
 
-class MediaCacheRepository:
+class MediaCacheRepository(MediaCacheRepositoryPort):
     def __init__(self, path: Path | str = _MEDIA_CACHE) -> None:
         self.path = Path(path)
         self._cache = self._load()
