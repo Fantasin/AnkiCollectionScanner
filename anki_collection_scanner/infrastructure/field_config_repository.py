@@ -9,8 +9,12 @@ from dataclasses import asdict
 
 from anki_collection_scanner.application.field_config import FieldConfig
 from anki_collection_scanner.application.ports.field_config_repository_port import FieldConfigRepositoryPort
+import sys
 
-_FIELD_CONFIGS = Path(__file__).resolve().parents[0] / "field_configs.json"
+if getattr(sys, 'frozen', False):
+    _FIELD_CONFIGS = Path(sys.executable).parent / "field_configs.json"
+else:
+    _FIELD_CONFIGS = Path(__file__).resolve().parents[0] / "field_configs.json"
 
 logger = logging.getLogger(__name__)
 

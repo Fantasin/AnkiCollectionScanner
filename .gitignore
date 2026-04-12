@@ -9,3 +9,8 @@ venv/
 *.json
 local_audio_static/
 *.mp3
+
+# PyInstaller build output
+build/
+dist/
+*.spec.bak

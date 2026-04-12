@@ -26,6 +26,8 @@ class App:
         self.shutdown_thread: Optional[threading.Thread] = None
         self._close_requested_at: float = 0.0
         self.root = tk.Tk()
+        self.root.title("Anki Collection Scanner")
+        self.root.geometry("700x400")
         self._build_ui()
         #self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 

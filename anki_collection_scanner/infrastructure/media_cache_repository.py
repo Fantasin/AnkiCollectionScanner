@@ -26,8 +26,12 @@ import json
 
 from pathlib import Path
 from anki_collection_scanner.application.ports.media_cache_repository_port import MediaCacheRepositoryPort
+import sys
 
-_MEDIA_CACHE = Path(__file__).resolve().parents[0] / "media_cache.json"
+if getattr(sys, 'frozen', False):
+    _MEDIA_CACHE = Path(sys.executable).parent / "media_cache.json"
+else:
+    _MEDIA_CACHE = Path(__file__).resolve().parents[0] / "media_cache.json"
 
 class MediaCacheRepository(MediaCacheRepositoryPort):
     def __init__(self, path: Path | str = _MEDIA_CACHE) -> None:

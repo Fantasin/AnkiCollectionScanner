@@ -9,9 +9,13 @@ from anki_collection_scanner.domain.collection_snapshot.collection_snapshot impo
 from anki_collection_scanner.domain.result import Result
 from anki_collection_scanner.domain.domain_exceptions import SnapshotRepositoryError, SnapshotCorruptedError, SnapshotNotFoundError
 from anki_collection_scanner.application.ports.snapshot_repository_port import SnapshotRepositoryPort
+import sys
 
-PATH_TO_ROOT = Path(__file__).resolve().parents[1]
-PATH_TO_FILE = PATH_TO_ROOT / "infrastructure" / "snapshot.json"
+if getattr(sys, 'frozen', False):
+    PATH_TO_FILE = Path(sys.executable).parent / "snapshot.json"
+else:
+    PATH_TO_ROOT = Path(__file__).resolve().parents[1]
+    PATH_TO_FILE = PATH_TO_ROOT / "infrastructure" / "snapshot.json"
 
 logger = logging.getLogger(__name__)
 

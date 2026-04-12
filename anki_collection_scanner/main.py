@@ -12,14 +12,21 @@ from anki_collection_scanner.domain.audio_service.audio_preparation_service impo
 
 from anki_collection_scanner.infrastructure.logging_setup import build_logging
 
+import sys
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-BASE_PROJECT_PATH = Path(__file__).resolve().parents[0]
+if getattr(sys, 'frozen', False):
+    # Running as a PyInstaller .exe: writable files and audio folder live next to the exe
+    BASE_PROJECT_PATH = Path(sys.executable).parent
+    INDEX_FILE_PATH = BASE_PROJECT_PATH / "index.json"
+else:
+    BASE_PROJECT_PATH = Path(__file__).resolve().parents[0]
+    INDEX_FILE_PATH = BASE_PROJECT_PATH / "infrastructure" / "index.json"
+
 BASE_AUDIO_SOURCES_PATH = BASE_PROJECT_PATH / "local_audio_static"
-INDEX_FILE_PATH = BASE_PROJECT_PATH / "infrastructure" / "index.json"
 
 #preparing app with dependency injection. Useful for GUI
 def build_app():

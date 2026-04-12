@@ -1,9 +1,12 @@
+import sys
 import logging
 import logging.config
 from pathlib import Path
 
-
-_LOG_FILE_PATH = Path(__file__).resolve().parents[2] / "app.log"
+if getattr(sys, 'frozen', False):
+    _LOG_FILE_PATH = Path(sys.executable).parent / "app.log"
+else:
+    _LOG_FILE_PATH = Path(__file__).resolve().parents[2] / "app.log"
 
 
 def build_logging():

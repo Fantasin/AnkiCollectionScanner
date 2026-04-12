@@ -13,7 +13,11 @@ from anki_collection_scanner.domain.audio_service.audio_models import AudioFile
 
 logger = logging.getLogger(__name__)
 
-BASE_PROJECT_PATH = Path(__file__).resolve().parents[1]
+import sys
+if getattr(sys, 'frozen', False):
+    BASE_PROJECT_PATH = Path(sys.executable).parent
+else:
+    BASE_PROJECT_PATH = Path(__file__).resolve().parents[1]
 BASE_AUDIO_SOURCES_PATH = BASE_PROJECT_PATH / "local_audio_static"
 
 @dataclass(frozen=True)

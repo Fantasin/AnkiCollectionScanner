@@ -1,7 +1,10 @@
 [project]
 name = "anki_collection_scanner"
 version = "0.1.0"
-dependencies = []
+dependencies = [
+    "requests",
+    "beautifulsoup4",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
